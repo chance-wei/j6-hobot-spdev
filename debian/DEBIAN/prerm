@@ -1,0 +1,5 @@
+#!/bin/bash
+
+pip3 uninstall -y hobot_vio
+pip3 uninstall -y hobot-dnn
+exit 0
