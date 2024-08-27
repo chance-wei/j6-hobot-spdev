@@ -26,25 +26,34 @@ namespace spdev
 int32_t VPPDisplay::OpenDisplay(int32_t width, int32_t height)
 {
 	int32_t ret = 0;
-	int64_t alloc_flags = 0;
+	int64_t allocFlags = 0;
 
 	vp_display_init(&m_drm_ctx, width, height);
 
-	memset(&m_vo_image, 0, sizeof(hbn_vnode_image_t));
-	alloc_flags = HB_MEM_USAGE_MAP_INITIALIZED |
-				HB_MEM_USAGE_PRIV_HEAP_2_RESERVERD |
-				HB_MEM_USAGE_CPU_READ_OFTEN |
-				HB_MEM_USAGE_CPU_WRITE_OFTEN |
-				HB_MEM_USAGE_CACHED |
-				HB_MEM_USAGE_GRAPHIC_CONTIGUOUS_BUF;
-	ret = hb_mem_alloc_graph_buf(m_width, m_height,
-								MEM_PIX_FMT_NV12,
-								alloc_flags,
-								m_width, m_height,
-								&m_vo_image.buffer);
-	if (ret != 0){
-		SC_LOGE("hb_mem_alloc_graph_buf failed error(%d)", ret);
-		return -1;
+	allocFlags = HB_MEM_USAGE_MAP_INITIALIZED |
+					HB_MEM_USAGE_PRIV_HEAP_2_RESERVERD |
+					HB_MEM_USAGE_CPU_READ_OFTEN |
+					HB_MEM_USAGE_CPU_WRITE_OFTEN |
+					HB_MEM_USAGE_CACHED |
+					HB_MEM_USAGE_GRAPHIC_CONTIGUOUS_BUF;
+
+	for (int i = 0; i < NUM_BUFFERS; ++i) {
+		memset(&m_vo_buffers[i], 0, sizeof(hbn_vnode_image_t));
+
+		// 使用默认构造函数初始化的 hbn_vnode_image_t 对象
+		ret = hb_mem_alloc_graph_buf(width, height,
+										MEM_PIX_FMT_NV12,
+										allocFlags,
+										width, height,
+										&m_vo_buffers[i].buffer);
+		if (ret != 0) {
+			SC_LOGE("hb_mem_alloc_graph_buf for buffer[%d] failed error(%d)", i, ret);
+			// 释放已分配的缓冲区
+			for (int j = 0; j < i; ++j) {
+				hb_mem_free_buf(m_vo_buffers[j].buffer.fd[0]);
+			}
+			return -1;
+		}
 	}
 
 	return ret;
@@ -53,11 +62,13 @@ int32_t VPPDisplay::OpenDisplay(int32_t width, int32_t height)
 int32_t VPPDisplay::Close()
 {
 	int32_t ret = 0;
+	for (int i = 0; i < NUM_BUFFERS; ++i) {
+		hb_mem_free_buf(m_vo_buffers[i].buffer.fd[0]);
+	}
 	vp_display_deinit(&m_drm_ctx);
 
 	return ret;
 }
-
 
 int32_t read_yuvv_nv12_file(const char *filename, char *addr0, char *addr1, uint32_t y_size)
 {
@@ -226,16 +237,16 @@ int32_t VPPDisplay::SetImageFrame(ImageFrame *frame)
 	int32_t ret = 0;
 	nv12_image image;
 
+	hbn_vnode_image_t& currentBuffer = m_vo_buffers[currentBufferIndex];
+	currentBufferIndex = (currentBufferIndex + 1) % NUM_BUFFERS;
+
 	for (int i = 0; i < frame->plane_count; ++i) {
-		memcpy(m_vo_image.buffer.virt_addr[i],
-			frame->data[i], frame->data_size[i]);
+		memcpy(currentBuffer.buffer.virt_addr[i], frame->data[i], frame->data_size[i]);
 	}
 
-	image.data = m_vo_image.buffer.virt_addr[0];
+	image.data = currentBuffer.buffer.virt_addr[0];
 	image.height = frame->height;
 	image.width = frame->width;
-
-	// std::lock_guard<std::mutex> lock(queueMutex); // 自动加锁和解锁
 
 	while (!rectQueue.empty()) {
 		// Get parameters from the queue
@@ -247,8 +258,8 @@ int32_t VPPDisplay::SetImageFrame(ImageFrame *frame)
 			params.color, 1);
 	}
 
-	// read_nv12_image("/userdata/1920_1080_NV12.yuv", &m_vo_image);
-	ret = vp_display_set_frame(&m_drm_ctx, &m_vo_image);
+	// read_nv12_image("/userdata/1920_1080_NV12.yuv", &currentBuffer);
+	ret = vp_display_set_frame(&m_drm_ctx, &currentBuffer);
 
 	return ret;
 }
