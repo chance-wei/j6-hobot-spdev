@@ -359,7 +359,7 @@ extern "C"
 			dst_width, dst_height, crop_x, crop_y, crop_width, crop_height, rotate));
 	}
 
-	PyObject *Camera_close(libsppydev_Object *self)
+	PyObject *Camera_close_cam(libsppydev_Object *self)
 	{
 		if (!(self->pobj && self->pframe))
 		{
@@ -918,7 +918,7 @@ extern "C"
 	static struct PyMethodDef Camera_Methods[] = {
 		{"open_cam", (PyCFunction)Camera_open_cam, METH_VARARGS | METH_KEYWORDS, "Open camera and start video stream"},
 		{"open_vps", (PyCFunction)Camera_open_vps, METH_VARARGS | METH_KEYWORDS, "Open vps process"},
-		{"close", (PyCFunction)Camera_close, METH_NOARGS, "Stop video stream and close camera"},
+		{"close_cam", (PyCFunction)Camera_close_cam, METH_NOARGS, "Stop video stream and close camera"},
 		{"get_img", (PyCFunction)Camera_get_img, METH_VARARGS | METH_KEYWORDS, "Get image from the channel"},
 		{"set_img", (PyCFunction)Camera_set_img, METH_VARARGS | METH_KEYWORDS, "Set image to the vps"},
 		{nullptr, nullptr, 0, nullptr},
