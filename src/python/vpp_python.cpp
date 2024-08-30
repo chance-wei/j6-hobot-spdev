@@ -824,17 +824,17 @@ extern "C"
 	static PyObject *Display_set_graph_rect(libsppydev_Object *self, PyObject *args, PyObject *kw)
 	{
 		VPPDisplay *pobj = (VPPDisplay *)self->pobj;
-		int32_t x0, y0, x1, y1, flush = 0, line_width = 4;
+		int x0, y0, x1, y1, chn = 2, flush = 0, line_width = 4;
 		uint64_t color = 0xffff0000;
-		char *kwlist[] = {(char *)"x0", (char *)"y0", (char *)"x1", (char *)"y1",
-						  (char *)"flush", (char *)"color", (char *)"line_width", NULL};
+		static char *kwlist[] = {(char *)"x0", (char *)"y0", (char *)"x1", (char *)"y1",
+			(char *)"chn", (char *)"flush", (char *)"color", (char *)"line_width", NULL};
 
 		if (!self->pobj)
 		{
 			PyErr_SetString(PyExc_Exception, "display not inited");
 			return Py_BuildValue("i", -1);
 		}
-		if (!PyArg_ParseTupleAndKeywords(args, kw, "iiii|ili", kwlist, &x0, &y0, &x1, &y1, &flush, &color, &line_width))
+		if (!PyArg_ParseTupleAndKeywords(args, kw, "iiii|iili", kwlist, &x0, &y0, &x1, &y1, &chn, &flush, &color, &line_width))
 		{
 			return Py_BuildValue("i", -1);
 		}
@@ -845,18 +845,18 @@ extern "C"
 	static PyObject *Display_set_graph_word(libsppydev_Object *self, PyObject *args, PyObject *kw)
 	{
 		VPPDisplay *pobj = (VPPDisplay *)self->pobj;
-		int32_t x, y, flush = 0, line_width = 1;
+		int x, y, chn = 2, flush = 0, line_width = 1;
 		uint64_t color = 0xffff0000;
 		PyObject *str_obj = nullptr;
-		char *kwlist[] = {(char *)"x", (char *)"y", (char *)"str",
-						  (char *)"flush", (char *)"color", (char *)"line_width", NULL};
+		static char *kwlist[] = {(char *)"x", (char *)"y", (char *)"str",
+			(char *)"chn", (char *)"flush", (char *)"color", (char *)"line_width", NULL};
 
 		if (!self->pobj)
 		{
 			PyErr_SetString(PyExc_Exception, "display not inited");
 			return Py_BuildValue("i", -1);
 		}
-		if (!PyArg_ParseTupleAndKeywords(args, kw, "iiO|ili", kwlist, &x, &y, &str_obj, &flush, &color, &line_width))
+		if (!PyArg_ParseTupleAndKeywords(args, kw, "iiO|iili", kwlist, &x, &y, &str_obj, &chn, &flush, &color, &line_width))
 		{
 			return Py_BuildValue("i", -1);
 		}
