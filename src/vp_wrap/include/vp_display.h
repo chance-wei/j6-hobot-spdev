@@ -18,7 +18,6 @@
 #include <xf86drm.h>
 #include <xf86drmMode.h>
 #include <drm_fourcc.h>
-#include "uthash.h"
 
 #include "vp_common.h"
 
@@ -26,16 +25,41 @@
 extern "C" {
 #endif
 
+#define DISPLAY_DEFAULT_WIDTH 1920
+#define DISPLAY_DEFAULT_HEIGHT 1080
+
+#define FONT_WORD_HEIGHT 16
+#define FONT_ONE_ENCODE_WIDTH 8
+#define FONT_CN_ENCODE_NUM 2
+#define FONT_EN_ENCODE_NUM 1
+#define FONT_CN_WORD_WIDTH \
+    (FONT_CN_ENCODE_NUM * FONT_ONE_ENCODE_WIDTH)
+#define FONT_EN_WORD_WIDTH \
+    (FONT_EN_ENCODE_NUM * FONT_ONE_ENCODE_WIDTH)
+#define FONT_HARD_PIXEL_BITS 4
+#define ONE_BYTE_BIT_CNT 8
+
+#define DISPLAY_ARGB_BYTES 4
+
+#define FONT_MASK_80 0x80
+#define FONT_MASK_40 0x40
+#define FONT_MASK_20 0x20
+#define FONT_MASK_10 0x10
+#define FONT_MASK_08 0x08
+#define FONT_MASK_04 0x04
+#define FONT_MASK_02 0x02
+#define FONT_MASK_01 0x01
+
+#define FONT_INTERVAL_CN_WORD_CNT 94
+#define FONT_CN_WORD_START_ENCODE 0xa0
+#define FONT_CN_WORD_BYTES 32
+#define FONT_EN_WORD_BYTES 16
+
+#define SDK_FONT_HZK16_FILE "/usr/hobot/lib/HZK16"
+#define SDK_FONT_ASC16_FILE "/usr/hobot/lib/ASC16"
 
 #define DRM_MAX_PLANES 3
 #define DRM_ION_MAX_BUFFERS 3
-
-typedef struct
-{
-	int dma_buf_fd;
-	uint32_t fb_id;
-	UT_hash_handle hh; // uthash 处理器
-} dma_buf_map_t;
 
 typedef struct
 {
@@ -64,15 +88,18 @@ typedef struct
 	uint32_t width;
 	uint32_t height;
 	int plane_count;
-	dma_buf_map_t *buffer_map; // 使用哈希表
-	int buffer_count;
-	int max_buffers; // 动态调整 buffer_map 的大小
 } vp_drm_context_t;
 
 int32_t vp_display_init(vp_drm_context_t *drm_ctx, int32_t width, int32_t height);
 int32_t vp_display_deinit(vp_drm_context_t *drm_ctx);
-int32_t vp_display_set_frame(vp_drm_context_t *drm_ctx,
+int32_t vp_display_set_frame(vp_drm_context_t *drm_ctx, int32_t plane_idx,
 	hbn_vnode_image_t *image_frame);
+
+void vp_display_draw_rect(uint8_t *frame, int32_t x0, int32_t y0, int32_t x1, int32_t y1,
+	int32_t color, int32_t fill, int32_t screen_width, int32_t screen_height,
+	int32_t line_width);
+int32_t vp_display_draw_word(uint8_t *addr, int32_t x, int32_t y, char *str,
+	int32_t width, int32_t color, int32_t line_width);
 
 #ifdef __cplusplus
 }

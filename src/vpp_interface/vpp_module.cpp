@@ -44,8 +44,6 @@ namespace spdev
 			ret = prev_module->GetImageFrame(&frame, m_prev_module_chn);
 			if (ret < 0)
 			{
-				LOGE_print("Module %s GetImageFrame failed\n",
-					prev_module->GetModuleTypeString());
 				usleep(30);
 				continue;
 			}

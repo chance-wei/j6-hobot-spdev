@@ -40,18 +40,6 @@ using namespace std;
 
 namespace spdev
 {
-
-	// Structure to hold rectangle parameters
-	struct RectParams {
-		int32_t x0;
-		int32_t y0;
-		int32_t x1;
-		int32_t y1;
-		int32_t flush;
-		uint32_t color;
-		int32_t line_width;
-	};
-
 	class VPPDisplay : public VPPModule
 	{
 	public:
@@ -93,9 +81,7 @@ namespace spdev
 		static const int NUM_BUFFERS = 3;
 		hbn_vnode_image_t m_vo_buffers[NUM_BUFFERS];
 		int32_t currentBufferIndex = 0;
-		// Queue to store rectangle parameters
-		std::deque<RectParams> rectQueue;
-		std::mutex queueMutex; // 用于保护队列的互斥锁
+		hbn_vnode_image_t m_draw_buffers;
 	};
 
 }; // namespace spdev

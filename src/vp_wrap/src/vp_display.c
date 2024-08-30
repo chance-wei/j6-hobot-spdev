@@ -13,6 +13,8 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <sys/mman.h>
+#include <sys/wait.h>
 
 #include "utils/cJSON.h"
 #include "utils/utils_log.h"
@@ -20,6 +22,302 @@
 
 #include "vp_display.h"
 #include "vp_wrap.h"
+
+typedef struct {
+	int dma_buf_fd;
+	int fb_id;
+} dma_buf_map_t;
+
+#define MAX_MAPPINGS 64
+dma_buf_map_t *mappings;
+size_t *mapping_count;
+
+/* python在调用显示模块的图形、文字绘制时会创建子进程来处理
+ * 所以需要共享内存来传递dma_buf_fd和fb_id，使父子进程的修改能够同步
+ */
+void initialize_shared_memory() {
+	mappings = mmap(NULL, sizeof(dma_buf_map_t) * MAX_MAPPINGS, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+	mapping_count = mmap(NULL, sizeof(size_t), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+
+	if (mappings == MAP_FAILED || mapping_count == MAP_FAILED) {
+		perror("mmap");
+		exit(1);
+	}
+
+	*mapping_count = 0;
+}
+
+bool add_mapping(int dma_buf_fd, int fb_id) {
+	if (*mapping_count >= MAX_MAPPINGS) {
+		return false;
+	}
+
+	mappings[*mapping_count].dma_buf_fd = dma_buf_fd;
+	mappings[*mapping_count].fb_id = fb_id;
+	(*mapping_count)++;
+	printf("add mapping dma_buf_fd:%d fb_id:%d, mapping_count: %zu\n", dma_buf_fd, fb_id, *mapping_count);
+	return true;
+}
+
+int find_fb_id(int dma_buf_fd) {
+	for (size_t i = 0; i < *mapping_count; i++) {
+		if (mappings[i].dma_buf_fd == dma_buf_fd) {
+			return mappings[i].fb_id;
+		}
+	}
+	return -1;
+}
+
+bool remove_mapping(int dma_buf_fd) {
+	for (size_t i = 0; i < *mapping_count; i++) {
+		if (mappings[i].dma_buf_fd == dma_buf_fd) {
+			mappings[i] = mappings[*mapping_count - 1];
+			(*mapping_count)--;
+			return true;
+		}
+	}
+	return false;
+}
+
+static void draw_dot(uint8_t *frame, int32_t x, int32_t y, int32_t color,
+					 int32_t screen_width, int32_t screen_height)
+{
+	int32_t pbyte = DISPLAY_ARGB_BYTES;
+
+	if (x >= screen_width || y >= screen_height)
+		return;
+
+	frame += ((y * screen_width) + x) * pbyte;
+	while (pbyte) {
+		pbyte--;
+		frame[pbyte] = (color >> (pbyte * 8)) & 0xFF;
+	}
+}
+static void draw_hline(uint8_t *frame, int32_t x0, int32_t x1, int32_t y, int32_t color,
+					   int32_t screen_width, int32_t screen_height)
+{
+	int32_t xi, xa;
+
+	xi = (x0 < x1) ? x0 : x1;
+	xa = (x0 > x1) ? x0 : x1;
+	while (xi <= xa) {
+		draw_dot(frame, xi, y, color, screen_width, screen_height);
+		xi++;
+	}
+}
+
+static void draw_vline(uint8_t *frame, int32_t x, int32_t y0, int32_t y1, int32_t color,
+					   int32_t screen_width, int32_t screen_height)
+{
+	int32_t yi, ya;
+
+	yi = (y0 < y1) ? y0 : y1;
+	ya = (y0 > y1) ? y0 : y1;
+	while (yi <= ya) {
+		draw_dot(frame, x, yi, color, screen_width, screen_height);
+		yi++;
+	}
+}
+
+void vp_display_draw_rect(uint8_t *frame, int32_t x0, int32_t y0, int32_t x1, int32_t y1,
+	int32_t color, int32_t fill, int32_t screen_width, int32_t screen_height,
+	int32_t line_width)
+{
+	int32_t xi, xa, yi, ya;
+	int32_t i = 0;
+
+	xi = (x0 < x1) ? x0 : x1; // left
+	xa = (x0 > x1) ? x0 : x1; // right
+	yi = (y0 < y1) ? y0 : y1; // bottom
+	ya = (y0 > y1) ? y0 : y1; // top
+	if (fill) {
+		while (yi <= ya) {
+			draw_hline(frame, xi, xa, yi, color, screen_width, screen_height);
+			yi++;
+		}
+	} else {
+		if (ya < line_width || yi > (screen_height - line_width) ||
+			xi > (screen_width - line_width) ||
+			xa > (screen_width - line_width)) {
+			LOGD_print("========point is 0,return========\n");
+			return;
+		}
+		for (i = 0; i < line_width; i++) {
+			draw_hline(frame, xi, xa, yi + i, color, screen_width, screen_height);
+			draw_hline(frame, xi, xa, ya - i, color, screen_width, screen_height);
+			draw_vline(frame, xi + i, yi, ya, color, screen_width, screen_height);
+			draw_vline(frame, xa + i, yi, ya, color, screen_width, screen_height);
+		}
+	}
+}
+
+static void osd_draw_word_row(uint8_t *addr, uint32_t width,
+	uint32_t line_width, uint32_t color)
+{
+	uint32_t addr_offset;
+	uint32_t m, w, i;
+
+	for (m = 0; m < line_width; m++) {
+		for (w = 0; w < line_width; w++) {
+			addr_offset = ((width * m) + w) * DISPLAY_ARGB_BYTES;
+			for (i = 0; i < DISPLAY_ARGB_BYTES; i++) {
+				addr[addr_offset + i] = (color >> (i * 8)) & 0xff;
+			}
+		}
+	}
+}
+
+// draw chinese word
+static int32_t osd_draw_cn_word(uint8_t *addr, uint32_t width,
+	uint32_t line_width, uint32_t color, uint8_t *cn_word)
+{
+	FILE *file;
+	uint8_t flag;
+	uint64_t offset;
+	uint8_t *addr_word, *addr_src;
+	uint8_t buffer[32];
+	uint8_t key[8] = {FONT_MASK_80, FONT_MASK_40, FONT_MASK_20,
+					  FONT_MASK_10, FONT_MASK_08, FONT_MASK_04,
+					  FONT_MASK_02, FONT_MASK_01};
+	uint32_t row_bytes;
+	uint32_t k, j, i;
+	size_t size;
+
+	file = fopen(SDK_FONT_HZK16_FILE, "rb");
+	if (file == NULL) {
+		LOGE_print("open HZK16 file fail %d %s\n", errno, strerror(errno));
+		return -1;
+	}
+
+	offset = ((FONT_INTERVAL_CN_WORD_CNT *
+		((uint64_t)cn_word[0] - FONT_CN_WORD_START_ENCODE - 1u)) +
+		((uint64_t)cn_word[1] - FONT_CN_WORD_START_ENCODE) - 1u)
+		* FONT_CN_WORD_BYTES;
+	(void)fseek(file, (int64_t)offset, SEEK_SET);
+	size = fread((void *)buffer, 1, FONT_CN_WORD_BYTES, file);
+	if (size != FONT_CN_WORD_BYTES) {
+		LOGE_print("fread font file:%s error\n", SDK_FONT_HZK16_FILE);
+		(void)fclose(file);
+		return -1;
+	}
+
+	row_bytes = FONT_CN_WORD_WIDTH / ONE_BYTE_BIT_CNT;
+	addr_src = addr;
+
+	for (k = 0; k < FONT_WORD_HEIGHT; k++) {
+		addr_word = addr_src;
+		for (j = 0; j < row_bytes; j++) {
+			for (i = 0; i < ONE_BYTE_BIT_CNT; i++) {
+				flag = buffer[(k * row_bytes) + j] & key[i];
+				if (flag != 0u) {
+					osd_draw_word_row(addr_word, width, line_width, color);
+				}
+				addr_word = &addr_word[line_width * DISPLAY_ARGB_BYTES];
+			}
+		}
+		addr_src = &addr_src[width * line_width * DISPLAY_ARGB_BYTES];
+	}
+
+	(void)fclose(file);
+
+	return 0;
+}
+
+// draw endlish word
+static int32_t osd_draw_en_word(uint8_t *addr, uint32_t width,
+	uint32_t line_width, uint32_t color, uint8_t en_word)
+{
+	FILE *file;
+	uint8_t flag;
+	uint32_t offset;
+	uint8_t *addr_word, *addr_src;
+	uint8_t buffer[16];
+	uint8_t key[8] = {FONT_MASK_80, FONT_MASK_40, FONT_MASK_20,
+					  FONT_MASK_10, FONT_MASK_08, FONT_MASK_04,
+					  FONT_MASK_02, FONT_MASK_01};
+	uint32_t k, i;
+	size_t size;
+
+	file = fopen(SDK_FONT_ASC16_FILE, "rb");
+	if (file == NULL) {
+		LOGE_print("open ASC16 file fail\n");
+		return -1;
+	}
+
+	offset = (uint32_t)en_word * FONT_EN_WORD_BYTES;
+	(void)fseek(file, (int32_t)offset, SEEK_SET);
+	size = fread((void *)buffer, 1, FONT_EN_WORD_BYTES, file);
+	if (size != FONT_EN_WORD_BYTES) {
+		LOGE_print("fread font file:%s error\n", SDK_FONT_ASC16_FILE);
+		(void)fclose(file);
+		return -1;
+	}
+
+	addr_src = addr;
+
+	for (k = 0; k < FONT_WORD_HEIGHT; k++) {
+		addr_word = addr_src;
+		for (i = 0; i < ONE_BYTE_BIT_CNT; i++) {
+			flag = buffer[k] & key[i];
+			if (flag != 0u) {
+				osd_draw_word_row(addr_word, width, line_width, color);
+			}
+			addr_word = &addr_word[line_width * DISPLAY_ARGB_BYTES];
+		}
+		addr_src = &addr_src[width * line_width * DISPLAY_ARGB_BYTES];
+	}
+
+	(void)fclose(file);
+
+	return 0;
+}
+
+int32_t vp_display_draw_word(uint8_t *addr, int32_t x, int32_t y, char *str, int32_t width, int32_t color, int32_t line_width)
+{
+	uint32_t str_len, i, word_offs = 1u;
+	uint8_t cn_word[2], en_word;
+	int32_t ret;
+	uint32_t addr_offset;
+
+	if (addr == NULL) {
+		LOGE_print("draw word addr was NULL\n");
+		return -1;
+	}
+
+	str_len = (uint32_t)strlen(str);
+
+	addr_offset = ((y * width) + x) * DISPLAY_ARGB_BYTES;
+	addr = &(addr)[addr_offset];
+
+	for (i = 0; i < str_len; i += word_offs) {
+		if (str[i] >= (uint8_t)FONT_CN_WORD_START_ENCODE) {
+			cn_word[0] = str[i];
+			cn_word[1] = str[i + 1u];
+			if (cn_word[1] == '\0') {
+				word_offs = FONT_CN_ENCODE_NUM;
+				continue;
+			}
+
+			ret = osd_draw_cn_word(addr, width, line_width, color, cn_word);
+			if (ret < 0) {
+				return ret;
+			}
+			word_offs = FONT_CN_ENCODE_NUM;
+			addr = &addr[line_width * FONT_CN_WORD_WIDTH * DISPLAY_ARGB_BYTES];
+		}
+		if (str[i] < (uint8_t)FONT_CN_WORD_START_ENCODE) {
+			en_word = str[i];
+
+			ret = osd_draw_en_word(addr, width, line_width, color, en_word);
+			if (ret < 0) {
+				return ret;
+			}
+			word_offs = FONT_EN_ENCODE_NUM;
+			addr = &addr[line_width * FONT_EN_WORD_WIDTH * DISPLAY_ARGB_BYTES];
+		}
+	}
+	return 0;
+}
 
 static void add_property(int drm_fd, drmModeAtomicReq *req, uint32_t obj_id,
 	uint32_t obj_type, const char *name, uint64_t value)
@@ -291,29 +589,49 @@ static void drm_init_config(vp_drm_context_t *drm_ctx, int32_t width, int32_t he
 {
 	memset(drm_ctx, 0, sizeof(vp_drm_context_t));
 	drm_ctx->crtc_id = 31;
-	drm_ctx->connector_id = 117;
+	drm_ctx->connector_id = 75;
 	drm_ctx->width = width;
 	drm_ctx->height = height;
 
-	drm_ctx->plane_count = 1;
+	drm_ctx->plane_count = 2;
 
 	for (int i = 0; i < drm_ctx->plane_count; i++)
 	{
-		drm_ctx->planes[i].plane_id = 33;
-		drm_ctx->planes[i].src_w = width;
-		drm_ctx->planes[i].src_h = height;
-		drm_ctx->planes[i].crtc_x = 0;
-		drm_ctx->planes[i].crtc_y = 0;
-		drm_ctx->planes[i].crtc_w = width;
-		drm_ctx->planes[i].crtc_h = height;
-		strcpy(drm_ctx->planes[i].format, "NV12");
+		if (i == 0)
+		{
+			drm_ctx->planes[i].plane_id = 33;
+			drm_ctx->planes[i].src_w = width;
+			drm_ctx->planes[i].src_h = height;
+			drm_ctx->planes[i].crtc_x = 0;
+			drm_ctx->planes[i].crtc_y = 0;
+			drm_ctx->planes[i].crtc_w = width;
+			drm_ctx->planes[i].crtc_h = height;
+			strcpy(drm_ctx->planes[i].format, "NV12");
 
-		drm_ctx->planes[i].z_pos = -1;
-		drm_ctx->planes[i].alpha = -1;
-		drm_ctx->planes[i].pixel_blend_mode = -1;
-		drm_ctx->planes[i].rotation = -1;
-		drm_ctx->planes[i].color_encoding = -1;
-		drm_ctx->planes[i].color_range = -1;
+			drm_ctx->planes[i].z_pos = 0;
+			drm_ctx->planes[i].alpha = 65535;
+			drm_ctx->planes[i].pixel_blend_mode = 1;
+			drm_ctx->planes[i].rotation = -1;
+			drm_ctx->planes[i].color_encoding = -1;
+			drm_ctx->planes[i].color_range = -1;
+		} else if (i == 1)
+		{
+			drm_ctx->planes[i].plane_id = 40;
+			drm_ctx->planes[i].src_w = width;
+			drm_ctx->planes[i].src_h = height;
+			drm_ctx->planes[i].crtc_x = 0;
+			drm_ctx->planes[i].crtc_y = 0;
+			drm_ctx->planes[i].crtc_w = width;
+			drm_ctx->planes[i].crtc_h = height;
+			strcpy(drm_ctx->planes[i].format, "AR24");
+
+			drm_ctx->planes[i].z_pos = 1;
+			drm_ctx->planes[i].alpha = 65535;
+			drm_ctx->planes[i].pixel_blend_mode = 1;
+			drm_ctx->planes[i].rotation = -1;
+			drm_ctx->planes[i].color_encoding = -1;
+			drm_ctx->planes[i].color_range = -1;
+		}
 
 		printf("------------------------------------------------------\n");
 		printf("Plane %d:\n", i);
@@ -333,10 +651,6 @@ static void drm_init_config(vp_drm_context_t *drm_ctx, int32_t width, int32_t he
 		printf("  Color Range: %d\n", drm_ctx->planes[i].color_range);
 		printf("------------------------------------------------------\n");
 	}
-
-	drm_ctx->max_buffers = drm_ctx->plane_count * DRM_ION_MAX_BUFFERS;
-	drm_ctx->buffer_map = NULL;
-	drm_ctx->buffer_count = 0;
 }
 
 int32_t vp_display_init(vp_drm_context_t *drm_ctx, int32_t width, int32_t height)
@@ -370,27 +684,18 @@ int32_t vp_display_init(vp_drm_context_t *drm_ctx, int32_t width, int32_t height
 		close(drm_ctx->drm_fd);
 		return -1;
 	}
+
+	initialize_shared_memory();
+
 	return ret;
 }
 
 int32_t vp_display_deinit(vp_drm_context_t *drm_ctx)
 {
 	int32_t ret = 0;
-	dma_buf_map_t *current, *tmp;
 
-	// 释放 buffer_map 中的所有条目
-	HASH_ITER(hh, drm_ctx->buffer_map, current, tmp)
-	{
-		if (current->fb_id)
-		{
-			if (drmModeRmFB(drm_ctx->drm_fd, current->fb_id) < 0)
-			{
-				perror("drmModeRmFB");
-			}
-		}
-		HASH_DEL(drm_ctx->buffer_map, current);
-		free(current);
-	}
+	munmap(mappings, sizeof(dma_buf_map_t) * MAX_MAPPINGS);
+	munmap(mapping_count, sizeof(size_t));
 
 	drmModeSetCrtc(drm_ctx->drm_fd, drm_ctx->crtc_id, 0, 0, 0, NULL, 0, NULL);
 
@@ -526,17 +831,9 @@ static uint32_t get_format_from_string(const char *format_str)
 static uint32_t get_framebuffer(vp_drm_context_t *drm_ctx,
 	int dma_buf_fd, int plane_index)
 {
-	dma_buf_map_t *entry = NULL;
-	HASH_FIND_INT(drm_ctx->buffer_map, &dma_buf_fd, entry);
-	if (entry)
-	{
-		return entry->fb_id;
-	}
-
-	if (drm_ctx->buffer_count >= drm_ctx->max_buffers)
-	{
-		printf("Buffer map is full, unable to add new framebuffer\n");
-		return 0;
+	uint32_t fb_id = find_fb_id(dma_buf_fd);
+	if (fb_id != -1) {
+		return fb_id;
 	}
 
 	struct drm_prime_handle prime_handle = {
@@ -555,17 +852,34 @@ static uint32_t get_framebuffer(vp_drm_context_t *drm_ctx,
 	uint32_t handles[4] = {0};
 	uint32_t strides[4] = {0};
 	uint32_t offsets[4] = {0};
-	handles[0] = prime_handle.handle;
-	strides[0] = drm_ctx->planes[plane_index].src_w;
-	offsets[0] = 0;
-	handles[1] = prime_handle.handle;
-	strides[1] = drm_ctx->planes[plane_index].src_w;
-	offsets[1] = drm_ctx->planes[plane_index].src_w * drm_ctx->planes[plane_index].src_h;
+	if (strcmp(drm_ctx->planes[plane_index].format, "NV12") == 0) {
+		handles[0] = prime_handle.handle;
+		strides[0] = drm_ctx->planes[plane_index].src_w;
+		offsets[0] = 0;
+		handles[1] = prime_handle.handle;
+		strides[1] = drm_ctx->planes[plane_index].src_w;
+		offsets[1] = drm_ctx->planes[plane_index].src_w * drm_ctx->planes[plane_index].src_h;
+	} else if (strcmp(drm_ctx->planes[plane_index].format, "RG24") == 0 ||
+				strcmp(drm_ctx->planes[plane_index].format, "BG24") == 0){
+		handles[0] = prime_handle.handle;
+		strides[0] = drm_ctx->planes[plane_index].src_w * 3;
+		offsets[0] = 0;
+	} else if (strcmp(drm_ctx->planes[plane_index].format, "AR24") == 0 ||
+				strcmp(drm_ctx->planes[plane_index].format, "RA24") == 0 ||
+				strcmp(drm_ctx->planes[plane_index].format, "AG24") == 0 ||
+				strcmp(drm_ctx->planes[plane_index].format, "GA24") == 0 ||
+				strcmp(drm_ctx->planes[plane_index].format, "BA24") == 0 ||
+				strcmp(drm_ctx->planes[plane_index].format, "AB24") == 0) {
+		handles[0] = prime_handle.handle;
+		strides[0] = drm_ctx->planes[plane_index].src_w * 4;
+		offsets[0] = 0;
+	}
 
-	uint32_t fb_id;
 	uint32_t drm_format = get_format_from_string(drm_ctx->planes[plane_index].format);
 
-	if (drmModeAddFB2(drm_ctx->drm_fd, drm_ctx->planes[plane_index].src_w, drm_ctx->planes[plane_index].src_h, drm_format, handles, strides, offsets, &fb_id, 0))
+	if (drmModeAddFB2(drm_ctx->drm_fd,
+		drm_ctx->planes[plane_index].src_w, drm_ctx->planes[plane_index].src_h,
+		drm_format, handles, strides, offsets, &fb_id, 0))
 	{
 		perror("drmModeAddFB2");
 		return 0;
@@ -573,32 +887,19 @@ static uint32_t get_framebuffer(vp_drm_context_t *drm_ctx,
 
 	printf("Created new framebuffer: fb_id=%u for dma_buf_fd=%d\n", fb_id, dma_buf_fd);
 
-	entry = (dma_buf_map_t *)malloc(sizeof(dma_buf_map_t));
-	if (!entry)
-	{
-		perror("malloc");
-		return 0;
-	}
-
-	entry->dma_buf_fd = dma_buf_fd;
-	entry->fb_id = fb_id;
-	HASH_ADD_INT(drm_ctx->buffer_map, dma_buf_fd, entry);
-	drm_ctx->buffer_count++;
+	add_mapping(dma_buf_fd, fb_id);
 
 	return fb_id;
 }
 
-int32_t vp_display_set_frame(vp_drm_context_t *drm_ctx,
+int32_t vp_display_set_frame(vp_drm_context_t *drm_ctx, int32_t plane_idx,
 	hbn_vnode_image_t *image_frame)
 {
 	int32_t ret = 0;
 	int dma_buf_fds[DRM_MAX_PLANES] = {-1, -1, -1};
 	uint32_t flags = DRM_MODE_ATOMIC_ALLOW_MODESET;
 
-	for (uint32_t i = 0; i < drm_ctx->plane_count; ++i)
-	{
-		dma_buf_fds[i] = image_frame->buffer.fd[i];
-	}
+	dma_buf_fds[plane_idx] = image_frame->buffer.fd[0];
 
 	drmModeAtomicReq *req = drmModeAtomicAlloc();
 	if (!req)
@@ -607,25 +908,22 @@ int32_t vp_display_set_frame(vp_drm_context_t *drm_ctx,
 		return -1;
 	}
 
-	for (int i = 0; i < drm_ctx->plane_count; i++)
+	if (dma_buf_fds[plane_idx] == -1)
 	{
-		if (dma_buf_fds[i] == -1)
-		{
-			continue;
-		}
-
-		uint32_t fb_id = get_framebuffer(drm_ctx, dma_buf_fds[i], i);
-		if (fb_id == 0)
-		{
-			fprintf(stderr, "Failed to get framebuffer for plane %d\n", i);
-			drmModeAtomicFree(req);
-			return -1;
-		}
-		add_property(drm_ctx->drm_fd, req, drm_ctx->planes[i].plane_id,
-			DRM_MODE_OBJECT_PLANE, "CRTC_ID", drm_ctx->crtc_id);
-		add_property(drm_ctx->drm_fd, req, drm_ctx->planes[i].plane_id,
-			DRM_MODE_OBJECT_PLANE, "FB_ID", fb_id);
+		return -1;
 	}
+
+	uint32_t fb_id = get_framebuffer(drm_ctx, dma_buf_fds[plane_idx], plane_idx);
+	if (fb_id == 0)
+	{
+		fprintf(stderr, "Failed to get framebuffer for plane %d\n", plane_idx);
+		drmModeAtomicFree(req);
+		return -1;
+	}
+	add_property(drm_ctx->drm_fd, req, drm_ctx->planes[plane_idx].plane_id,
+		DRM_MODE_OBJECT_PLANE, "CRTC_ID", drm_ctx->crtc_id);
+	add_property(drm_ctx->drm_fd, req, drm_ctx->planes[plane_idx].plane_id,
+		DRM_MODE_OBJECT_PLANE, "FB_ID", fb_id);
 
 	ret = drmModeAtomicCommit(drm_ctx->drm_fd, req, flags, NULL);
 
