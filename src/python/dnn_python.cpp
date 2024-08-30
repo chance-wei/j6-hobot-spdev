@@ -244,6 +244,57 @@ static PyObject* tensorproperties_get_shape(TensorProperties *self, void *closur
     return shape_tuple;
 }
 
+
+// 获取 alignedShape 成员属性的 getter 函数
+static PyObject* tensorproperties_get_alignedshape(PyObject *self, void *closure) {
+    TensorProperties *tp = (TensorProperties*)self;
+
+    // 拷贝 hbDNNTensorShape 结构体对象
+    hbDNNTensorShape *shape = (hbDNNTensorShape *)malloc(sizeof(hbDNNTensorShape));
+    if (!shape) {
+        PyErr_NoMemory();
+        return NULL;
+    }
+
+    // 设置 alignedShape 的数据
+    shape->numDimensions = tp->aligned_shape->numDimensions;
+    memcpy(shape->dimensionSize, tp->aligned_shape->dimensionSize, sizeof(int32_t) * shape->numDimensions);
+
+    // 将结构体转换为 Python 对象
+    PyObject *shape_obj = PyLong_FromVoidPtr(shape);
+    if (!shape_obj) {
+        free(shape);
+        return NULL;
+    }
+
+    return shape_obj;
+}
+
+// 获取 validShape 成员属性的 getter 函数
+static PyObject* tensorproperties_get_validshape(PyObject *self, void *closure) {
+    TensorProperties *tp = (TensorProperties*)self;
+
+    // 创建 hbDNNTensorShape 结构体对象
+    hbDNNTensorShape *shape = (hbDNNTensorShape *)malloc(sizeof(hbDNNTensorShape));
+    if (!shape) {
+        PyErr_NoMemory();
+        return NULL;
+    }
+
+    // 拷贝 validShape 的数据
+    shape->numDimensions = tp->valid_shape->numDimensions;
+    memcpy(shape->dimensionSize, tp->valid_shape->dimensionSize, sizeof(int32_t) * shape->numDimensions);
+
+    // 将结构体转换为 Python 对象
+    PyObject *shape_obj = PyLong_FromVoidPtr(shape);
+    if (!shape_obj) {
+        free(shape);
+        return NULL;
+    }
+
+    return shape_obj;
+}
+
 // 获取 scale_data 成员属性的 getter 函数
 static PyObject* tensorproperties_get_scale_data(TensorProperties *self, void *closure) {
     // 创建一个 NumPy 数组来存储 scale_data
@@ -261,6 +312,8 @@ static PyGetSetDef TensorPropertiesGetSet[] = {
     {"dtype", (getter)tensorproperties_get_dtype, NULL, "data type", NULL},
     {"layout", (getter)tensorproperties_get_layout, NULL, "layout", NULL},
     {"shape", (getter)tensorproperties_get_shape, NULL, "shape", NULL},
+    {"alignedShape", (getter)tensorproperties_get_alignedshape, NULL, "alignedShape", NULL},
+    {"validShape", (getter)tensorproperties_get_validshape, NULL, "validShape", NULL},
     {"scale_data", (getter)tensorproperties_get_scale_data, NULL, "scale data", NULL},
     {NULL} /* Sentinel */
 };
@@ -349,6 +402,29 @@ static PyObject* PyDNNTensor_get_properties(PyDNNTensor *self, void *closure) {
 
     properties_obj->scale_len = self->properties.scale.scaleLen;
     properties_obj->scale_data = self->properties.scale.scaleData;
+
+    // aligned_shape
+    properties_obj->aligned_shape = (hbDNNTensorShape *)malloc(sizeof(hbDNNTensorShape));
+    if (properties_obj->aligned_shape == NULL) {
+        PyErr_SetString(PyExc_RuntimeError, "Failed to allocate memory for aligned_shape");
+        free(properties_obj->scale_data);
+        free(properties_obj->shape);
+        Py_DECREF(properties_obj);
+        return NULL;
+    }
+    memcpy(properties_obj->aligned_shape, &self->properties.alignedShape, sizeof(hbDNNTensorShape));
+
+    // valid_shape
+    properties_obj->valid_shape = (hbDNNTensorShape *)malloc(sizeof(hbDNNTensorShape));
+    if (properties_obj->valid_shape == NULL) {
+        PyErr_SetString(PyExc_RuntimeError, "Failed to allocate memory for valid_shape");
+        free(properties_obj->aligned_shape);
+        free(properties_obj->scale_data);
+        free(properties_obj->shape);
+        Py_DECREF(properties_obj);
+        return NULL;
+    }
+    memcpy(properties_obj->valid_shape, &self->properties.validShape, sizeof(hbDNNTensorShape));
 
     return Py_BuildValue("O", properties_obj);
 }
@@ -733,7 +809,7 @@ static void release_model_tensor(Model_Object *model_obj)
     }
 }
 
-static int32_t prepare_model_tensor(Model_Object *model_obj)
+static int32_t prepare_model_tensor(PyObject *self , Model_Object *model_obj)
 {
     int32_t ret = 0;
     int32_t i = 0;
@@ -787,7 +863,7 @@ static int32_t prepare_model_tensor(Model_Object *model_obj)
     return ret;
 }
 
-Model_Object* create_and_load_model(const char* model_file) {
+Model_Object* create_and_load_model(PyObject *self , const char* model_file) {
     // 创建一个 Model 对象
     Model_Object* model = PyObject_New(Model_Object, &ModelType);
     if (model == NULL) {
@@ -830,7 +906,7 @@ Model_Object* create_and_load_model(const char* model_file) {
     model->m_dnn_handle = dnn_handle;
 
     // 准备模型张量
-    if (prepare_model_tensor(model) != 0) {
+    if (prepare_model_tensor(self , model) != 0) {
         PyErr_SetString(PyExc_RuntimeError, "prepare_model_tensor failed");
         Py_DECREF(model);
         return NULL;
@@ -897,7 +973,7 @@ static PyObject *Dnnpy_load(PyObject *self, PyObject *args, PyObject *kwargs)
         }
 
         // 创建并加载模型，省略部分代码
-        model = create_and_load_model(model_file);
+        model = create_and_load_model(self , model_file);
         if (model == NULL) {
             Py_DECREF(model_list);
             return NULL;

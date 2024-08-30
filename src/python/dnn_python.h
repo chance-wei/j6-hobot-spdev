@@ -55,6 +55,8 @@ typedef struct {
     int32_t layout;
     int32_t shape_size;
     int32_t* shape;
+    hbDNNTensorShape * aligned_shape;
+    hbDNNTensorShape * valid_shape;
     int32_t scale_len;
     float* scale_data;
 } TensorProperties;
