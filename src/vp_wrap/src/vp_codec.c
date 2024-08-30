@@ -784,8 +784,6 @@ int32_t vp_codec_get_output(media_codec_context_t *context, ImageFrame *frame, i
 	media_codec_output_buffer_info_t *info = NULL;
 	media_codec_buffer_t *buffer = NULL;
 
-	SC_LOGD("");
-
 	if ((context == NULL) || (frame == NULL))
 	{
 		SC_LOGE("codec param is NULL");
@@ -793,7 +791,6 @@ int32_t vp_codec_get_output(media_codec_context_t *context, ImageFrame *frame, i
 	}
 	buffer = &(frame->frame_buffer);
 	info = &(frame->buffer_info);
-	SC_LOGD("");
 	ret = hb_mm_mc_dequeue_output_buffer(context, buffer, info, timeout);
 	if (ret != 0)
 	{
@@ -815,10 +812,6 @@ int32_t vp_codec_get_output(media_codec_context_t *context, ImageFrame *frame, i
 		}
 		return -1;
 	}
-	SC_LOGD("");
-	// if (log_ctrl_level_get(NULL) == LOG_DEBUG) {
-	// 	vp_codec_print_media_codec_output_buffer_info(frame);
-	// }
 
 	if (context->codec_id >= MEDIA_CODEC_ID_H264 ||
 		context->codec_id <= MEDIA_CODEC_ID_JPEG)
@@ -839,18 +832,8 @@ int32_t vp_codec_get_output(media_codec_context_t *context, ImageFrame *frame, i
 				SC_LOGD("info->video_frame_info.decode_result: %d, buffer->vframe_buf.size: %d",
 					info->video_frame_info.decode_result, buffer->vframe_buf.size);
 			if (info->video_frame_info.decode_result == 0 || buffer->vframe_buf.size == 0) {
-				if (buffer != NULL)
-				{
-					ret = hb_mm_mc_queue_output_buffer(context, buffer, 0);
-					if (ret != 0)
-					{
-						SC_LOGE("idx: %d, hb_mm_mc_queue_output_buffer failed ret = %d \n", context->instance_index, ret);
-						return -1;
-					}
-				}
 				return 0;
 			}
-				SC_LOGD("");
 			frame->data[0] = (uint8_t *)(buffer->vframe_buf.vir_ptr[0]);
 			frame->data[1] = (uint8_t *)(buffer->vframe_buf.vir_ptr[1]);
 			frame->data_size[0] = buffer->vframe_buf.width * buffer->vframe_buf.height;
@@ -864,14 +847,6 @@ int32_t vp_codec_get_output(media_codec_context_t *context, ImageFrame *frame, i
 			} else {
 				frame->image_timestamp = buffer->vframe_buf.pts;
 			}
-
-			// char file_name[128];
-			// sprintf(file_name, "/tmp/codec%d_chn%d_%ux%u_%04d.yuv",
-			// 					context->codec_id, context->instance_index,
-			// 					info->video_frame_info.display_width,
-			// 					info->video_frame_info.display_height,
-			// 					info->video_frame_info.frame_display_index);
-			// vp_dump_yuv_to_file(file_name, frame->data[0], frame->data_size[0]);
 
 			SC_LOGD("Decodec idx: %d type:%d get frame size:%d",
 				context->instance_index, context->codec_id, frame->data_size[0]);
@@ -895,7 +870,6 @@ int32_t vp_codec_release_output(media_codec_context_t *context, ImageFrame *fram
 
 	SC_LOGD("%s idx: %d type:%d, buffer:%p",
 		context->encoder ? "Encode" : "Decode", context->instance_index, context->codec_id, buffer);
-	// vp_codec_print_media_codec_output_buffer_info(frame);
 
 	if (buffer != NULL)
 	{
@@ -913,187 +887,6 @@ int32_t vp_codec_release_output(media_codec_context_t *context, ImageFrame *fram
 	SC_LOGD("%s idx: %d, successful", context->encoder ? "Encode" : "Decode", context->instance_index);
 	return ret;
 }
-
-#if 0
-void *vp_decode_work_func_sc(void *param)
-{
-	tsThread *privThread = (tsThread*)param;
-	vp_decode_param_t *decode_param = (vp_decode_param_t *)(privThread->pvThreadData);
-	int32_t error = 0;
-	AVFormatContext *avContext = NULL;
-	AVPacket avpacket = {0};
-	int32_t video_idx = -1;
-	uint8_t *seqHeader = NULL;
-	int32_t seqHeaderSize = 0;
-	int32_t firstPacket = 1;
-	bool eos = false;
-	media_codec_context_t *context = NULL;
-	ImageFrame frame = {0};
-
-	frame.frame_buffer = (media_codec_buffer_t *)malloc(sizeof(media_codec_buffer_t));
-	if (frame.frame_buffer == NULL)
-	{
-		SC_LOGE("malloc media_codec_buffer_t failed.");
-		goto exit;
-	}
-
-	SC_LOGD("frame_buffer: %p", frame.frame_buffer);
-
-	frame.buffer_info = (media_codec_output_buffer_info_t *)malloc(sizeof(media_codec_output_buffer_info_t));
-	if (frame.buffer_info == NULL)
-	{
-		SC_LOGE("malloc media_codec_output_buffer_info_t failed.");
-		free(frame.frame_buffer);
-		goto exit;
-	}
-
-	mThreadSetName(privThread, __func__);
-
-	SC_LOGD("stream_path: %s", decode_param->stream_path);
-
-	context = decode_param->context;
-
-	video_idx = AV_open_stream(decode_param, &avContext, &avpacket);
-	if (video_idx < 0)
-	{
-		SC_LOGE("failed to AV_open_stream");
-		goto err_av_open;
-	}
-
-	while(privThread->eState == E_THREAD_RUNNING) {
-		mc_inter_status_t pstStatus;
-		hb_mm_mc_get_status(context, &pstStatus);
-
-		// wait for each frame for decoding
-		usleep(30 * 1000);
-
-		if (!avpacket.size)
-		{
-			error = av_read_frame(avContext, &avpacket);
-		}
-
-		if (error < 0)
-		{
-			if (error == AVERROR_EOF || avContext->pb->eof_reached == true)
-			{
-				SC_LOGI("No more input data available, avpacket.size: %d."
-					" Re-cycling to send again.", avpacket.size);
-				// if decode done, continue decode current file
-				eos = false;
-			}
-			else
-			{
-				SC_LOGE("Failed to av_read_frame error(0x%08x)", error);
-			}
-
-			if (avContext)
-			{
-				avformat_close_input(&avContext);
-			}
-			if (decode_param->stream_path != NULL)
-			{
-				avContext = NULL;
-				memset(&avpacket, 0, sizeof(avpacket));
-				video_idx = AV_open_stream(decode_param, &avContext, &avpacket);
-				if (video_idx < 0)
-				{
-					SC_LOGE("failed to AV_open_stream");
-					goto err_av_open;
-				}
-			}
-			else
-			{
-				eos = true;
-			}
-		}
-		else
-		{
-			seqHeaderSize = 0;
-			if (firstPacket)
-			{
-				AVCodecParameters *codec;
-				int32_t retSize = 0;
-				codec = avContext->streams[video_idx]->codecpar;
-				seqHeader = (uint8_t *)calloc(1U, codec->extradata_size + 1024);
-				if (seqHeader == NULL)
-				{
-					SC_LOGE("Failed to mallock seqHeader");
-					eos = true;
-					break;
-				}
-
-				seqHeaderSize = AV_build_dec_seq_header(seqHeader,
-												context->codec_id,
-												avContext->streams[video_idx], &retSize);
-				if (seqHeaderSize < 0)
-				{
-					SC_LOGE("Failed to build seqHeader");
-					eos = true;
-					break;
-				}
-				firstPacket = 0;
-			}
-			if (avpacket.size <= context->video_dec_params.bitstream_buf_size)
-			{
-				if (seqHeaderSize)
-				{
-					frame.data[0] = (void *)seqHeader;
-					frame.data_size[0] = seqHeaderSize;
-					vp_codec_set_input(context, &frame, eos);
-				}
-				else
-				{
-					frame.data[0] = (void *)avpacket.data;
-					frame.data_size[0] = avpacket.size;
-					vp_codec_set_input(context, &frame, eos);
-					if (log_ctrl_level_get(NULL) == LOG_TRACE) {
-						print_avpacket_info(&avpacket);
-						vp_codec_print_media_codec_output_buffer_info(&frame);
-					}
-					av_packet_unref(&avpacket);
-					avpacket.size = 0;
-				}
-			}
-			else
-			{
-				SC_LOGE("The external stream buffer is too small!"
-						"avpacket.size:%d, buffer size:%d",
-						avpacket.size,
-						context->video_dec_params.bitstream_buf_size);
-				eos = true;
-				break;
-			}
-
-			if (seqHeader)
-			{
-				free(seqHeader);
-				seqHeader = NULL;
-			}
-		}
-	}
-
-	if (eos)
-	{
-		frame.data[0] = (void *)seqHeader;
-		frame.data_size[0] = seqHeaderSize;
-		vp_codec_set_input(context, &frame, eos);
-	}
-
-	if (seqHeader)
-	{
-		free(seqHeader);
-		seqHeader = NULL;
-	}
-
-err_av_open:
-	if (avContext)
-		avformat_close_input(&avContext);
-exit:
-	mThreadFinish(privThread);
-	return NULL;
-}
-#endif
-
 
 void vp_decode_work_func(void *param)
 {
