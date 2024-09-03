@@ -385,7 +385,6 @@ extern "C"
 		DevModule module = SP_DEV_VPS;
 		int32_t width = 0, height = 0;
 		VPPCamera *cam = (VPPCamera *)self->pobj;
-		PyObject *size_obj = nullptr;
 		PyObject *img_obj = nullptr, *uv_obj = nullptr;
 		static char *kwlist[] = {(char *)"module", (char *)"width", (char *)"height", NULL};
 
@@ -638,7 +637,7 @@ extern "C"
 
 		/// Use the static args, for optional args using
 		static char *string = nullptr;
-		static int video_chn = 0, type = 1, width = 1920, height = 1080, dec_mode = 1;
+		static int video_chn = 0, type = 1, width = 1920, height = 1080;
 		int frame_count = 0;
 		int ret = 0;
 		PyObject *list_obj = nullptr;
@@ -697,8 +696,6 @@ extern "C"
 	{
 		PyObject *img_obj = nullptr;
 		VPPDecode *pobj = (VPPDecode *)self->pobj;
-		char *addr = nullptr;
-		int size = 0;
 		int chn = -1;
 		int eos = 0;
 		static char *kwlist[] = {(char *)"img", (char *)"chn", (char *)"eos", NULL};

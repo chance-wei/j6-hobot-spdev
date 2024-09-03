@@ -152,7 +152,24 @@ int32_t NumpyCopyHelper(hbDNNTensor *input_tensor,
 static PyObject *TensorProperties_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
 {
     TensorProperties *self = (TensorProperties *)type->tp_alloc(type, 0);
+    self->shape = nullptr;
+    self->scale_data = nullptr;
     return (PyObject *)self;
+}
+
+static void TensorProperties_dealloc(TensorProperties *self)
+{
+    if (self->shape != nullptr) {
+        free(self->shape);
+        self->shape = nullptr;
+    }
+
+    if (self->scale_data != nullptr) {
+        free(self->scale_data);
+        self->scale_data = nullptr;
+    }
+
+    self->ob_base.ob_type->tp_free(self);
 }
 
 // 构造函数：初始化类的属性
@@ -323,7 +340,7 @@ static PyTypeObject TensorPropertiesType = {
     "dnnpy.TensorProperties",                   /* tp_name */
     sizeof(TensorProperties),                      /* tp_basicsize */
     0,                                             /* tp_itemsize */
-    (destructor)PyObject_Free,                     /* tp_dealloc */
+    (destructor)TensorProperties_dealloc,          /* tp_dealloc */
     0,                                             /* tp_print */
     0,                                             /* tp_getattr */
     0,                                             /* tp_setattr */
@@ -363,7 +380,12 @@ static PyTypeObject TensorPropertiesType = {
 static PyObject *PyDNNTensor_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
 {
     PyDNNTensor *self = (PyDNNTensor *)type->tp_alloc(type, 0);
+    self->buffer = nullptr;
     return (PyObject *)self;
+}
+
+static void PyDNNTensor_dealloc(PyDNNTensor* self) {
+    self->ob_base.ob_type->tp_free(self);
 }
 
 // 构造函数：初始化类的属性
@@ -432,8 +454,6 @@ static PyObject* PyDNNTensor_get_properties(PyDNNTensor *self, void *closure) {
 // 获取 buffer 成员属性的 getter 函数
 static PyObject* PyDNNTensor_get_buffer(PyDNNTensor *self, void *closure) {
     // 将 self->buffer 转换为 Python 对象并返回
-    // 假设你有一个函数可以将 C 结构体转换为 PyObject
-
     return buffer_2_pyarray(self->buffer, self->properties);
 }
 
@@ -462,7 +482,6 @@ static int32_t GetOutputName(hbDNNHandle_t dnn_handle, int32_t output_index,
 // 获取 name 成员属性的 getter 函数
 static PyObject* PyDNNTensor_get_name(PyDNNTensor *self, void *closure) {
     // 将 self->name 转换为 Python 对象并返回
-
     return PyUnicode_FromString(self->name);
 }
 
@@ -479,7 +498,7 @@ static PyTypeObject PyDNNTensorType = {
     "dnnpy.PyDNNTensor",                        /* tp_name */
     sizeof(PyDNNTensor),                           /* tp_basicsize */
     0,                                             /* tp_itemsize */
-    0,                                             /* tp_dealloc */
+    (destructor)PyDNNTensor_dealloc,               /* tp_dealloc */
     0,                                             /* tp_print */
     0,                                             /* tp_getattr */
     0,                                             /* tp_setattr */
@@ -516,6 +535,32 @@ static PyTypeObject PyDNNTensorType = {
     0,                                             /* tp_free */
 };
 
+// 释放模型张量资源
+static void release_model_tensor(Model_Object *model_obj)
+{
+    if (model_obj->m_inputs != NULL) {
+        // 释放输入张量数组的内存
+        for (int i = 0; i < model_obj->m_input_count; ++i) {
+            if (model_obj->m_inputs[i].sysMem == NULL) {
+                hbSysFreeMem(model_obj->m_inputs[i].sysMem);
+            }
+        }
+        free(model_obj->m_inputs);
+        model_obj->m_inputs = NULL;
+    }
+
+    if (model_obj->m_outputs != NULL) {
+        // 释放输出张量数组的内存
+        for (int i = 0; i < model_obj->m_output_count; ++i) {
+            if (model_obj->m_outputs[i].sysMem == NULL) {
+                hbSysFreeMem(model_obj->m_outputs[i].sysMem);
+            }
+        }
+        free(model_obj->m_outputs);
+        model_obj->m_outputs = NULL;
+    }
+}
+
 static PyObject *Model_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
 {
     Model_Object *self = (Model_Object *)type->tp_alloc(type, 0);
@@ -524,7 +569,7 @@ static PyObject *Model_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
 
 static void Model_dealloc(Model_Object *self)
 {
-    // release_model_tensor(self);
+    release_model_tensor(self);
     self->ob_base.ob_type->tp_free(self);
 }
 
@@ -550,7 +595,7 @@ static PyObject *model_get_model_name(Model_Object *self, void *closure) {
 
 static PyObject* model_get_tensor_inputs(Model_Object *self, void *closure) {
     // 获取模型的输入张量列表，这里假设 inputs 是一个列表，存储了 PyDNNTensor 对象的引用
-    PyObject *inputs_list = PyList_New(0);  // 创建一个空列表
+    PyObject *inputs_list = PyList_New(0);
     if (!inputs_list) {
         PyErr_SetString(PyExc_RuntimeError, "Failed to create inputs list.");
         return NULL;
@@ -558,7 +603,7 @@ static PyObject* model_get_tensor_inputs(Model_Object *self, void *closure) {
 
     for (int i = 0; i < self->m_input_count; i++) {
         // 创建一个 Model 对象
-        PyDNNTensor *dnn_tensor = PyObject_New(PyDNNTensor, &PyDNNTensorType);
+        PyDNNTensor *dnn_tensor = (PyDNNTensor *)PyDNNTensor_new(&PyDNNTensorType, NULL, NULL);
         if (dnn_tensor == NULL) {
             PyErr_SetString(PyExc_RuntimeError, "Failed to create dnn_tensor object");
             Py_DECREF(inputs_list);
@@ -570,6 +615,7 @@ static PyObject* model_get_tensor_inputs(Model_Object *self, void *closure) {
 
         // 将张量对象添加到列表中
         PyList_Append(inputs_list, (PyObject *)dnn_tensor);
+        Py_DECREF(dnn_tensor);  // 引用计数管理交给 inputs_list
     }
 
     return inputs_list;
@@ -577,17 +623,15 @@ static PyObject* model_get_tensor_inputs(Model_Object *self, void *closure) {
 
 static PyObject* model_get_tensor_outputs(Model_Object *self, void *closure) {
     // 获取模型的输出张量列表，这里假设 outputs 是一个列表，存储了 PyDNNTensor 对象的引用
-    PyObject *outputs_list = PyList_New(0);  // 创建一个空列表
+    PyObject *outputs_list = PyList_New(0);
     if (!outputs_list) {
         PyErr_SetString(PyExc_RuntimeError, "Failed to create outputs list.");
         return NULL;
     }
 
-
     for (int i = 0; i < self->m_output_count; i++) {
         // 创建一个 PyDNNTensor 对象
         PyDNNTensor *dnn_tensor = (PyDNNTensor *)PyDNNTensor_new(&PyDNNTensorType, NULL, NULL);
-        // PyDNNTensor *dnn_tensor = PyObject_New(PyDNNTensor, &PyDNNTensorType);
         if (dnn_tensor == NULL) {
             PyErr_SetString(PyExc_RuntimeError, "Failed to create dnn_tensor object");
             Py_DECREF(outputs_list);
@@ -606,6 +650,7 @@ static PyObject* model_get_tensor_outputs(Model_Object *self, void *closure) {
             Py_DECREF(outputs_list);
             return NULL;
         }
+        Py_DECREF(dnn_tensor);  // 引用计数管理交给 outputs_list
     }
 
     return outputs_list;
@@ -710,18 +755,19 @@ static PyObject *Model_forward(Model_Object *self, PyObject *args, PyObject *kwa
 
     // 创建 NV12 数据数组
     int nv12_size = arg_height * arg_width; // NV12 格式的数据大小
-    // unsigned char* nv12_data = (unsigned char*)malloc(nv12_size * sizeof(unsigned char));
 
     // 调用 forward 函数并传递处理后的参数
-    // 这里假设 forward 函数接受一个 PyArrayObject* 类型的参数以及两个整数参数
     int32_t result = forward(self, arg_data_ptr, nv12_size, core_id, priority);
 
     // 处理 forward 函数的返回值并返回相应的结果
     if (result == -1) {
         // 处理 forward 函数执行失败的情况
         printf("arg_height=%d arg_width=%d, arg_channels=%d\n", arg_height, arg_width, arg_channels);
+        Py_DECREF(arg_array);
         Py_RETURN_NONE;
     }
+
+    Py_DECREF(arg_array);
 
     // 返回 forward 函数执行成功的情况
     return model_get_tensor_outputs(self, NULL);
@@ -782,32 +828,6 @@ static PyTypeObject ModelType = {
     (newfunc)Model_new,                            /* tp_new */
     0,                                             /* tp_free */
 };
-
-// 释放模型张量资源
-static void release_model_tensor(Model_Object *model_obj)
-{
-    if (model_obj->m_inputs != NULL) {
-        // 释放输入张量数组的内存
-        for (int i = 0; i < model_obj->m_input_count; ++i) {
-            if (model_obj->m_inputs[i].sysMem == NULL) {
-                hbSysFreeMem(model_obj->m_inputs[i].sysMem);
-            }
-        }
-        free(model_obj->m_inputs);
-        model_obj->m_inputs = NULL;
-    }
-
-    if (model_obj->m_outputs != NULL) {
-        // 释放输出张量数组的内存
-        for (int i = 0; i < model_obj->m_output_count; ++i) {
-            if (model_obj->m_outputs[i].sysMem == NULL) {
-                hbSysFreeMem(model_obj->m_outputs[i].sysMem);
-            }
-        }
-        free(model_obj->m_outputs);
-        model_obj->m_outputs = NULL;
-    }
-}
 
 static int32_t prepare_model_tensor(PyObject *self , Model_Object *model_obj)
 {
