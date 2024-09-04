@@ -718,7 +718,14 @@ int32_t vp_codec_set_input(media_codec_context_t *context, ImageFrame *frame, in
 		buffer->vframe_buf.width = context->video_enc_params.width;
 		buffer->vframe_buf.height = context->video_enc_params.height;
 		buffer->vframe_buf.pix_fmt = MC_PIXEL_FORMAT_NV12;
-		buffer->vframe_buf.size = frame->data_size[0];
+		/* Due to the possibility that the camera may transmit the Y component and UV components
+		separately during data transmission, it is necessary to make a determination.*/
+		// buffer->vframe_buf.size = frame->data_size[0];
+		if (frame->vnode_image.buffer.plane_cnt == 2){
+			buffer->vframe_buf.size = frame->data_size[0] + frame->data_size[1];
+		} else {
+			buffer->vframe_buf.size = frame->data_size[0];
+		}
 		buffer->vframe_buf.pts = frame->image_timestamp;
 		// SC_LOGW("Buffer Type: %d", buffer->type);
 		// SC_LOGW("Width: %d", buffer->vframe_buf.width);
