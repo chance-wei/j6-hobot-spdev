@@ -31,6 +31,13 @@ enum VPS_PROCESS_MODE {
     VPS_SCALE_ROTATE_CROP = 4,
 };
 
+#define MAX_CAMERAS 4
+typedef struct {
+    int enable;
+    int i2c_bus;
+    int mipi_host;
+} board_camera_info_t;
+
 class VPPCamera :public VPPModule
 {
   public:

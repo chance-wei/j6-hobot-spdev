@@ -15,12 +15,40 @@
 
 #include <stdbool.h>
 
+extern vp_sensor_config_t sc1330t_linear_1280x960_raw10_30fps_1lane;
+extern vp_sensor_config_t irs2875_linear_208x1413_raw12_15fps_2lane;
+extern vp_sensor_config_t sc230ai_linear_1920x1080_raw10_10fps_1lane;
+extern vp_sensor_config_t sc230ai_linear_1920x1080_raw10_30fps_1lane;
+extern vp_sensor_config_t sc132gs_linear_1088x1280_raw10_30fps_1lane;
+extern vp_sensor_config_t sc035hgs_linear_640x480_raw10_30fps_1lane;
+extern vp_sensor_config_t ov5640_linear_1920x1080_raw10_30fps_2lane;
+extern vp_sensor_config_t f37_linear_1920x1080_raw10_30fps_1lane;
+extern vp_sensor_config_t imx415_linear_3480x2160_raw10_30fps_4lane;
+extern vp_sensor_config_t sc202cs_linear_1600x1200_raw10_30fps_1lane;
+extern vp_sensor_config_t irs2381c_linear_224x1903_raw12_5fps_2lane;
 extern vp_sensor_config_t imx219_linear_1920x1080_raw10_30fps_2lane;
 extern vp_sensor_config_t ov5647_linear_1920x1080_raw10_30fps_2lane;
+extern vp_sensor_config_t imx477_linear_1920x1080_raw12_50fps_2lane;
+extern vp_sensor_config_t sc035hgs_linear_640x480_raw10_30fps_2lane_vc0;
+extern vp_sensor_config_t sc035hgs_linear_640x480_raw10_30fps_2lane_vc1;
 
 vp_sensor_config_t *vp_sensor_config_list[] = {
+	&sc1330t_linear_1280x960_raw10_30fps_1lane,
+	&irs2875_linear_208x1413_raw12_15fps_2lane,
+	&sc230ai_linear_1920x1080_raw10_10fps_1lane,
+	&sc230ai_linear_1920x1080_raw10_30fps_1lane,
+	&sc132gs_linear_1088x1280_raw10_30fps_1lane,
+	&sc035hgs_linear_640x480_raw10_30fps_1lane,
+	&ov5640_linear_1920x1080_raw10_30fps_2lane,
+	&f37_linear_1920x1080_raw10_30fps_1lane,
+	&imx415_linear_3480x2160_raw10_30fps_4lane,
+	&sc202cs_linear_1600x1200_raw10_30fps_1lane,
+	&irs2381c_linear_224x1903_raw12_5fps_2lane,
 	&imx219_linear_1920x1080_raw10_30fps_2lane,
-	 &ov5647_linear_1920x1080_raw10_30fps_2lane,
+	&ov5647_linear_1920x1080_raw10_30fps_2lane,
+	&imx477_linear_1920x1080_raw12_50fps_2lane,
+	&sc035hgs_linear_640x480_raw10_30fps_2lane_vc0,
+	&sc035hgs_linear_640x480_raw10_30fps_2lane_vc1,
 };
 
 uint32_t vp_get_sensors_list_number() {
@@ -142,6 +170,13 @@ static int enable_sensor_pin(int gpio_number, int active)
 	}
 
 	/* gpio level should be keep same with sensor driver power_on api */
+	// Set GPIO value to active
+	if (gpio_set_value(gpio_number, active) != 0) {
+		printf("Failed to set GPIO value\n");
+		return -1;
+	}
+
+	usleep(30 * 1000);
 
 	// Set GPIO value to 1 - active
 	if (gpio_set_value(gpio_number,  (1 - active)) != 0) {
@@ -487,25 +522,27 @@ int get_board_id(char *data, size_t size)
 	return 0;
 }
 
-static bool should_skip_sci1(void)
+static void should_used_csi(int *is_need_used_csi)
 {
 	char board_id[16];
-	bool is_need_skip_sci1 = true; // Default to skip if get_board_id fails
 	int ret = get_board_id(board_id, sizeof(board_id));
 
 	if (ret == 0) {
 		if (strncmp(board_id, "201", 3) == 0) {
-			printf("[INFO] board_id is %s, so skip sci1 test.\n", board_id);
-		} else {
-			printf("[INFO] board_id is %s, not need skip sci1.\n", board_id);
-			is_need_skip_sci1 = false;
+			printf("[INFO] board_id is %s, so skip csi test for index 1\n", board_id);
+			is_need_used_csi[1] = false;// board 201 not use csi1
+		}
+
+		if (strncmp(board_id, "301", 3) == 0) {
+			printf("[INFO] board_id is %s, so skip csi test for index 1 and index 3\n", board_id);
+			is_need_used_csi[1] = false;// board 301 not use csi1 csi3
+			is_need_used_csi[3] = false;
 		}
 	} else {
-		printf("read board_id file failed, so skip sci1.\n");
+		printf("read board_id file failed, so skip csi.\n");
 	}
-
-	return is_need_skip_sci1;
 }
+
 static int32_t vp_sensor_mipi_host_mclk_is_not_configed(int csi_index){
 	int mclk_is_not_configed = 0;
 	struct mipi_properties mipi_property;
@@ -527,13 +564,14 @@ void vp_sensor_detect_structed(csi_list_info_t *csi_list_info)
 	struct mipi_properties mipi_props_array[VP_MAX_VCON_NUM];
 	csi_list_info->valid_count = 0;
 	csi_list_info->max_count = VP_MAX_VCON_NUM;
-	bool is_need_skip_sci1 = should_skip_sci1();
+	int is_need_used_csi[VP_MAX_VCON_NUM] = {true, true, true, true};
+	should_used_csi(is_need_used_csi);
 	// Iterate over vcon@0 - 3
 	for (int i = 0; i < VP_MAX_VCON_NUM; ++i) {
 		csi_info_t csi_info_tmp = {.index = i, .is_valid = 0};
 		read_vcon_info_from_device_tree(i, &vcon_props_array[i]);
 		read_mipi_info_from_device_tree(i, &mipi_props_array[i]);
-		if ((i == 1) && (is_need_skip_sci1)) {
+		if (is_need_used_csi[i] == false) {
 			csi_list_info->csi_info[i] = csi_info_tmp;
 			continue;
 		}
@@ -602,13 +640,14 @@ int32_t vp_sensor_multi_fixed_mipi_host(vp_sensor_config_t *sensor_config, int u
 	int32_t ret = -1, j = 0;
 	static int32_t i = 0;
 	uint32_t frequency = 24000000;
-	bool is_need_skip_sci1 = should_skip_sci1();
+	int is_need_used_csi[VP_MAX_VCON_NUM] = {true, true, true, true};
+	should_used_csi(is_need_used_csi);
 
 	struct vcon_properties vcon_props_array[VP_MAX_VCON_NUM];
 
 	// Iterate over vcon@0 - 3
 	for (i = 0; i < VP_MAX_VCON_NUM; ++i) {
-		if ((i == 1) && (is_need_skip_sci1)) {
+		if (is_need_used_csi[i] == false) {
 			continue;
 		}
 		// 跳过使用使用的mipi csi控制器，支持同时接入相同的摄像头
@@ -667,13 +706,14 @@ int32_t vp_sensor_fixed_mipi_host(vp_sensor_config_t *sensor_config, vp_csi_conf
 {
 	int32_t ret = 0, i = 0, j = 0;
 	uint32_t frequency = 24000000;
-	bool is_need_skip_sci1 = should_skip_sci1();
+	int is_need_used_csi[VP_MAX_VCON_NUM] = {true, true, true, true};
+	should_used_csi(is_need_used_csi);
 
 	struct vcon_properties vcon_props_array[VP_MAX_VCON_NUM];
 
 	// Iterate over vcon@0 - 3
 	for (i = 0; i < VP_MAX_VCON_NUM; ++i) {
-		if ((i == 1) && (is_need_skip_sci1)) {
+		if (is_need_used_csi[i] == false) {
 			continue;
 		}
 		if (check_mipi_host_status(i) == 0)
@@ -729,19 +769,23 @@ vp_sensor_config_t *vp_get_sensor_config_by_mipi_host(int32_t mipi_host_index)
 {
 	int32_t ret = 0, j = 0;
 	uint32_t frequency = 24000000;
-	bool is_need_skip_sci1 = should_skip_sci1();
+	int is_need_used_csi[VP_MAX_VCON_NUM] = {true, true, true, true};
+	should_used_csi(is_need_used_csi);
 
 	struct vcon_properties vcon_props_array[VP_MAX_VCON_NUM];
 
-	if ((mipi_host_index == 1) && (is_need_skip_sci1)) {
-		printf("Mipi csi%d is not allowed\n", mipi_host_index);
-		return NULL;
-	}
 	if (check_mipi_host_status(mipi_host_index) == 0) {
 		printf("Mipi csi%d has been used, please use other Cam interfaces\n", mipi_host_index);
 		return NULL;
 	}
+	int mclk_is_not_configed = vp_sensor_mipi_host_mclk_is_not_configed(mipi_host_index);
 	read_vcon_info_from_device_tree(mipi_host_index, &vcon_props_array[mipi_host_index]);
+
+	if(!mclk_is_not_configed){
+		/* enable mclk */
+		write_mipi_host_freq(mipi_host_index, frequency);
+		enable_mipi_host_clock(mipi_host_index, 1);
+	}
 
 	printf("Searching camera sensor on device: %s ", vcon_props_array[mipi_host_index].device_path);
 	printf("i2c bus: %d ", vcon_props_array[mipi_host_index].bus);
@@ -769,6 +813,9 @@ vp_sensor_config_t *vp_get_sensor_config_by_mipi_host(int32_t mipi_host_index)
 					vcon_props_array[mipi_host_index].rx_phy[1],
 					vp_sensor_config_list[j]->camera_config->addr,
 					vp_sensor_config_list[j]->config_file);
+				/* Fixed Mipi host */
+				vp_sensor_config_list[j]->vin_node_attr->cim_attr.mipi_rx =
+					vcon_props_array[mipi_host_index].rx_phy[1];
 				return vp_sensor_config_list[j];
 			}
 		}

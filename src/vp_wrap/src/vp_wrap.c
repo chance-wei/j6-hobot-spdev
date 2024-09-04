@@ -95,10 +95,10 @@ void vp_normal_buf_info_print(ImageFrame *frame)
 	printf("  Height: %d\n", frame->height);
 	printf("  Stride: %d\n", frame->stride);
 	printf("  VStride: %d\n", frame->vstride);
-	printf("  Frame ID: %lld\n", frame->frame_id);
-	printf("  Lost Image Num: %lld\n", frame->lost_image_num);
-	printf("  Exposure Time: %lld\n", frame->exp_time);
-	printf("  Image Timestamp: %lld\n", frame->image_timestamp);
+	printf("  Frame ID: %ld\n", frame->frame_id);
+	printf("  Lost Image Num: %ld\n", frame->lost_image_num);
+	printf("  Exposure Time: %ld\n", frame->exp_time);
+	printf("  Image Timestamp: %ld\n", frame->image_timestamp);
 	printf("  Plane Count: %d\n", frame->plane_count);
 
 	// 打印每个平面的数据

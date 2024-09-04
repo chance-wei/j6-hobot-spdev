@@ -12,6 +12,7 @@
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include <string.h>
+#include <cJSON.h>
 
 #include "utils_log.h"
 
@@ -24,6 +25,126 @@
 
 namespace spdev
 {
+	static cJSON *open_json_file(const char *path)
+	{
+		FILE *fp = fopen(path, "r");
+		int32_t ret = 0;
+		if (fp == NULL)
+		{
+			perror("fopen");
+			return NULL;
+		}
+
+		fseek(fp, 0, SEEK_END);
+		long fsize = ftell(fp);
+		fseek(fp, 0, SEEK_SET);
+
+		char *buf = (char *)malloc(fsize + 1);
+		ret = fread(buf, fsize, 1, fp);
+		if (ret != 1)
+		{
+			LOGE_print("Error fread size:%d\n", ret);
+		}
+		fclose(fp);
+
+		buf[fsize] = '\0';
+
+		cJSON *root = cJSON_Parse(buf);
+		if (root == NULL)
+		{
+			const char *error_ptr = cJSON_GetErrorPtr();
+			if (error_ptr != NULL)
+			{
+				LOGE_print("Error cJSON_Parse: %s\n", error_ptr);
+			}
+			free(buf);
+			return NULL;
+		}
+		free(buf);
+
+		return root;
+	}
+
+	static int parse_cameras(cJSON *cameras, board_camera_info_t camera_info[])
+	{
+		cJSON *camera = NULL;
+		int ret;
+
+		for (int i = 0; i < MAX_CAMERAS; i++) {
+			camera_info[i].enable = 0;
+
+			camera = cJSON_GetArrayItem(cameras, i);
+			if (camera == NULL) {
+				break;
+			}
+
+			// parse i2c_bus
+			cJSON *i2c_bus_obj = cJSON_GetObjectItem(camera, "i2c_bus");
+			if (i2c_bus_obj == NULL) {
+				ret = -1;
+				goto exit;
+			}
+			camera_info[i].i2c_bus = i2c_bus_obj->valueint;
+
+			// parse mipi_host
+			cJSON *mipi_host_obj = cJSON_GetObjectItem(camera, "mipi_host");
+			if (mipi_host_obj == NULL) {
+				ret = -1;
+				goto exit;
+			}
+			camera_info[i].mipi_host = mipi_host_obj->valueint;
+			camera_info[i].enable = 1;
+		}
+		ret = 0;
+
+	exit:
+		return ret;
+	}
+
+	static int parse_config(const char *json_file, board_camera_info_t camera_info[])
+	{
+		int ret = 0;
+		cJSON *root = NULL;
+		cJSON *board_config = NULL;
+		cJSON *cameras = NULL;
+		char board_id[16];
+		char board_name[32];
+
+		FILE *fp = fopen("/sys/class/socinfo/board_id", "r");
+		if (fp == NULL) {
+			return -1 ;
+		}
+		fscanf(fp, "%s", board_id);
+		fclose(fp);
+
+		snprintf(board_name, sizeof(board_name), "board_%s", board_id);
+
+		root = open_json_file(json_file);
+		if (!root) {
+			fprintf(stderr, "Failed to parse JSON string.\n");
+			return -1 ;
+		}
+
+		board_config = cJSON_GetObjectItem(root, board_name);
+		if (!board_config) {
+			fprintf(stderr, "Failed to get board_config object.\n");
+			ret = -1;
+			goto exit;
+		}
+
+		cameras = cJSON_GetObjectItem(board_config, "cameras");
+		if (!cameras) {
+			fprintf(stderr, "Failed to get cameras array.\n");
+			ret = -1;
+			goto exit;
+		}
+
+		ret = parse_cameras(cameras, camera_info);
+
+	exit:
+		cJSON_Delete(root);
+		return ret;
+	}
 	int32_t VPPCamera::SelectVseChn(int *chn_en, int src_width, int src_height,
 		int dst_width, int dst_height)
 	{
@@ -69,36 +190,53 @@ namespace spdev
 		isp_ichn_attr_t *isp_ichn_attr = NULL;
 		vse_config_t *vse_config = NULL;
 		int32_t input_width = 0, input_height = 0;
+		board_camera_info_t camera_info[MAX_CAMERAS];
 
 		memset(vp_vflow_contex, 0, sizeof(vp_vflow_contex_t));
 
+		memset(camera_info, 0, sizeof(camera_info));
+		ret = parse_config("/etc/board_config.json", camera_info);
+		if (ret != 0) {
+			printf("Failed to parse cameras\n");
+			return -1;
+		}
+
+		for (int i = 0; i < MAX_CAMERAS; i++) {
+			printf("Camera %d:\n", i);
+			// printf("\tenable: %d\n", camera_info[i].enable);
+			printf("\ti2c_bus: %d\n", camera_info[i].i2c_bus);
+			printf("\tmipi_host: %d\n", camera_info[i].mipi_host);
+		}
+
 		// 1. Detect Sensor
 		// 如果video_index 为 -1 ，那么遍历板子上的camera接口，否则使用指定的接口号
-		// TODO: RDK X5 有两个 CAM 接口，分别对应 mipi host0 和 mipi host2,
-		// 用户传入参数会是： -1， 0, 1, 下面的代码会做强制转换
-		// 当时更好的方式是读取 /etc/board_config.json 文件中关于camera接口的配置匹配不同的应将
+		// RDK X5 有两个 CAM 接口，分别对应 mipi host0 和 mipi host2,
+		// EVB 1_B 最大支持4路 CAM 接口，有 mipi host0-3，
+		// 读取 /etc/board_config.json 文件中关于camera接口的配置匹配不同的接口
 		// 每个sensor会支持不同的分辨率，需要根据传入的 parameters 选择 sensor 配置
-		switch (video_index)
-		{
-		case -1:
-			vp_vflow_contex->mipi_csi_rx_index = 0;
-			vp_vflow_contex->sensor_config = vp_get_sensor_config_by_mipi_host(0);
-			if (vp_vflow_contex->sensor_config != NULL)
-				break;
-			vp_vflow_contex->mipi_csi_rx_index = 2;
-			vp_vflow_contex->sensor_config = vp_get_sensor_config_by_mipi_host(2);
-			break;
-		case 0:
-			vp_vflow_contex->mipi_csi_rx_index = 0;
-			vp_vflow_contex->sensor_config = vp_get_sensor_config_by_mipi_host(0);
-			break;
-		case 1:
-			vp_vflow_contex->mipi_csi_rx_index = 2;
-			vp_vflow_contex->sensor_config = vp_get_sensor_config_by_mipi_host(2);
-			break;
-		default:
-			SC_LOGE("The video_index is not supported, please use in -1, 0, 1, 2, etc");
-			break;
+		if (video_index >= 0 && video_index < MAX_CAMERAS) {
+			vp_vflow_contex->mipi_csi_rx_index = camera_info[video_index].mipi_host;
+			vp_vflow_contex->sensor_config =
+				vp_get_sensor_config_by_mipi_host(camera_info[video_index].mipi_host);
+		} else if (video_index == -1) {
+			for (int i = 0; i < MAX_CAMERAS; i++) {
+				if (!camera_info[i].enable)
+					continue;
+				vp_vflow_contex->mipi_csi_rx_index = camera_info[i].mipi_host;
+				vp_vflow_contex->sensor_config =
+					vp_get_sensor_config_by_mipi_host(camera_info[i].mipi_host);
+				if (vp_vflow_contex->sensor_config != NULL)
+					break;
+			}
+		} else {
+			SC_LOGE("The parameter video_idx=%d is not supported. Please set it to one of [-1, 0, 1, 2, 3].");
+			return -1;
+		}
+
+		if (vp_vflow_contex->sensor_config == NULL) {
+			SC_LOGE("No camera sensor found, "
+				"please check whether the camera connection or video_idx is correct.\n");
+			return -1;
 		}
 
 		// 2. Setting Vse channel
