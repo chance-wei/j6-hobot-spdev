@@ -164,9 +164,14 @@ static void TensorProperties_dealloc(TensorProperties *self)
         self->shape = nullptr;
     }
 
-    if (self->scale_data != nullptr) {
-        free(self->scale_data);
-        self->scale_data = nullptr;
+    if (self->aligned_shape != nullptr) {
+        free(self->aligned_shape);
+        self->aligned_shape = nullptr;
+    }
+
+    if (self->valid_shape != nullptr) {
+        free(self->valid_shape);
+        self->valid_shape = nullptr;
     }
 
     self->ob_base.ob_type->tp_free(self);
@@ -448,7 +453,7 @@ static PyObject* PyDNNTensor_get_properties(PyDNNTensor *self, void *closure) {
     }
     memcpy(properties_obj->valid_shape, &self->properties.validShape, sizeof(hbDNNTensorShape));
 
-    return Py_BuildValue("O", properties_obj);
+    return (PyObject *)properties_obj;
 }
 
 // 获取 buffer 成员属性的 getter 函数
