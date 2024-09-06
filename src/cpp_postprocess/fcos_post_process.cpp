@@ -638,13 +638,80 @@ void GetBboxAndScoresScaleNHWC(hbDNNTensor *cls_tensors, hbDNNTensor *bbox_tenso
   }
 }
 
+//for community_qat_ support
+void GetBboxAndScoresScaleNHWC_V2(hbDNNTensor *cls_tensors, hbDNNTensor *bbox_tensors, hbDNNTensor *ce_tensors, FcosPostProcessInfo_t *post_info, int layer) {
+
+  // preprocess action is pad and resize
+  auto *cls_data = reinterpret_cast<int32_t *>(cls_tensors->sysMem[0].virAddr);
+  auto *bbox_data =
+      reinterpret_cast<int32_t *>(bbox_tensors->sysMem[0].virAddr);
+  auto *ce_data =
+      reinterpret_cast<int32_t *>(ce_tensors->sysMem[0].virAddr);
+  float *cls_scale = cls_tensors->properties.scale.scaleData;
+  float *bbox_scale = bbox_tensors->properties.scale.scaleData;
+  float *ce_scale = ce_tensors->properties.scale.scaleData;
+
+  // 同一个尺度下，tensor[i],tensor[i+5],tensor[i+10]出来的hw都一致，64*64/32*32/...
+  int *shape = cls_tensors->properties.alignedShape.dimensionSize;
+  int tensor_h = shape[1];
+  int tensor_w = shape[2];
+  int tensor_c = shape[3];
+  // int32_t bbox_c_stride=4;//{bbox_tensors->properties.alignedShape.dimensionSize[3]};
+  // int32_t ce_c_stride=4;//{ce_tensors->properties.alignedShape.dimensionSize[3]};
+  int32_t bbox_c_stride=bbox_tensors->properties.alignedShape.dimensionSize[3];
+  int32_t ce_c_stride=ce_tensors->properties.alignedShape.dimensionSize[3];
+
+
+  for (int h = 0; h < tensor_h; h++) {
+    for (int w = 0; w < tensor_w; w++) {
+      // get score
+      int ce_offset = (h * tensor_w + w) * ce_c_stride;
+      float ce_data_offset =
+          1.0 / (1.0 + exp(-ce_data[ce_offset] * ce_scale[0]));
+      int cls_offset = (h * tensor_w + w) * tensor_c;
+      auto max_score_id =
+          MaxScoreID(cls_data + cls_offset, cls_scale, tensor_c);
+      // filter
+      float cls_data_offset = 1.0 / (1.0 + exp(-max_score_id.first));
+      float score = std::sqrt(cls_data_offset * ce_data_offset);
+
+
+      // if (tmp_score.score <= post_info->score_threshold) continue;
+      if (score <= post_info->score_threshold) continue;
+
+      // get detection box
+      Detection detection;
+      int index = bbox_c_stride * (h * tensor_w + w);
+      auto &strides = fcos_config_.strides;
+
+
+      float xmin = std::max(0.f, bbox_data[index] * bbox_scale[0]);
+      float ymin = std::max(0.f, bbox_data[index + 1] * bbox_scale[1]);
+      float xmax = std::max(0.f, bbox_data[index + 2] * bbox_scale[2]);
+      float ymax = std::max(0.f, bbox_data[index + 3] * bbox_scale[3]);
+
+      detection.bbox.xmin = ((w + 0.5) - xmin) * strides[layer];
+      detection.bbox.ymin = ((h + 0.5) - ymin) * strides[layer];
+      detection.bbox.xmax = ((w + 0.5) + xmax) * strides[layer];
+      detection.bbox.ymax = ((h + 0.5) + ymax) * strides[layer];
+
+      detection.score = score;
+      detection.id = max_score_id.second;
+      detection.class_name = fcos_config_.class_names[detection.id].c_str();
+      fcos_dets.push_back(detection);
+    }
+  }
+
+}
+
 void FcosdoProcess(hbDNNTensor *cls_tensors, hbDNNTensor *bbox_tensors, hbDNNTensor *ce_tensors, FcosPostProcessInfo_t *post_info, int layer) {
 
   auto quanti_type = cls_tensors->properties.quantiType;
 
   if (quanti_type == hbDNNQuantiType::SCALE) {
       if (cls_tensors->properties.tensorLayout == HB_DNN_LAYOUT_NHWC) {
-        GetBboxAndScoresScaleNHWC(cls_tensors, bbox_tensors, ce_tensors, post_info, layer);
+        // GetBboxAndScoresScaleNHWC(cls_tensors, bbox_tensors, ce_tensors, post_info, layer);
+        GetBboxAndScoresScaleNHWC_V2(cls_tensors, bbox_tensors, ce_tensors, post_info, layer);
       } else if (cls_tensors->properties.tensorLayout == HB_DNN_LAYOUT_NCHW) {
         GetBboxAndScoresScaleNCHW(cls_tensors, bbox_tensors, ce_tensors, post_info, layer);
       } else {
