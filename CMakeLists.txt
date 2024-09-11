@@ -64,8 +64,10 @@ set(BASE_LIBRARIES pthread dl rt)
 
 if ("${SOC}" STREQUAL "X5")
     set(HB_SDK_LIB cam vpf hbmem multimedia avformat avcodec avutil
-    swresample ffmedia gdcbin cjson alog dnn cnn_intf
-    hbrt_bayes_aarch64 ssl crypto z dl rt pthread python3.10)
+    swresample ffmedia gdcbin cjson alog
+    dnn cnn_intf hbrt_bayes_aarch64
+    m EGL GL X11
+    ssl crypto z dl rt pthread python3.10)
 endif()
 
 # add spdev include path

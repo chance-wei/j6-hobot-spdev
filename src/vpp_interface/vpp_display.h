@@ -29,8 +29,11 @@
 #include <iostream>
 #include <memory>
 #include <mutex>
-#include <deque>
 #include <stddef.h>
+#include <vector>
+#include <condition_variable>
+#include <thread>
+#include <queue>
 
 #include "vp_wrap.h"
 #include "vpp_module.h"
@@ -76,12 +79,19 @@ namespace spdev
 		int32_t SetGraphWord(int32_t x, int32_t y, char *str,
 							 int32_t flush = 0, uint32_t color = 0xffff0000, int32_t line_width = 1);
 
+		void startProcessingThread();
+		void stopProcessingThread();
+
 	private:
 		vp_drm_context_t m_drm_ctx;
 		static const int NUM_BUFFERS = 3;
 		hbn_vnode_image_t m_vo_buffers[NUM_BUFFERS];
 		int32_t currentBufferIndex = 0;
 		hbn_vnode_image_t m_draw_buffers;
+		int32_t currentDrawBufferIndex = 0;
+		int32_t m_display_mode = 0; /* 0: libdrm; 1: egl x11 */
+
+		void processRGBAQueue();
 	};
 
 }; // namespace spdev
