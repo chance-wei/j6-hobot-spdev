@@ -705,7 +705,7 @@ int32_t vp_codec_set_input(media_codec_context_t *context, ImageFrame *frame, in
 	buffer = &(frame->frame_buffer);
 
 	buffer->type = (context->encoder) ? MC_VIDEO_FRAME_BUFFER : MC_VIDEO_STREAM_BUFFER;
-	ret = hb_mm_mc_dequeue_input_buffer(context, buffer, 2000);
+	ret = hb_mm_mc_dequeue_input_buffer(context, buffer, 100);
 	if (ret != 0)
 	{
 		SC_LOGE("hb_mm_mc_dequeue_input_buffer failed ret = %d", ret);
