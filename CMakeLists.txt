@@ -63,7 +63,7 @@ set(OUTPUT_ROOT ${CMAKE_SOURCE_DIR}/output/${PROJECT_NAME})
 set(BASE_LIBRARIES pthread dl rt)
 
 if ("${SOC}" STREQUAL "X5")
-    set(HB_SDK_LIB cam vpf hbmem multimedia avformat avcodec avutil
+    set(HB_SDK_LIB Nano2D Nano2Dutil cam vpf hbmem multimedia avformat avcodec avutil
     swresample ffmedia gdcbin cjson alog
     dnn cnn_intf hbrt_bayes_aarch64
     m EGL GL X11

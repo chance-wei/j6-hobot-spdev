@@ -585,54 +585,92 @@ static drmModeConnector* find_connector(int fd)
 	return conn; // Will return NULL if no suitable connector was found
 }
 
+static uint32_t find_overlay_plane_id(int drm_fd)
+{
+	drmModePlaneRes *plane_res = drmModeGetPlaneResources(drm_fd);
+	if (!plane_res) {
+		perror("drmModeGetPlaneResources failed");
+		return 0;
+	}
+
+	uint32_t plane_id = 0;
+	for (uint32_t i = 0; i < plane_res->count_planes; i++) {
+		drmModePlane *plane = drmModeGetPlane(drm_fd, plane_res->planes[i]);
+		if (!plane) {
+			perror("drmModeGetPlane failed");
+			continue;
+		}
+
+		// Check if the plane type is Overlay
+		drmModeObjectProperties *props = drmModeObjectGetProperties(drm_fd, plane->plane_id, DRM_MODE_OBJECT_PLANE);
+		if (props) {
+			for (uint32_t j = 0; j < props->count_props; j++) {
+				drmModePropertyRes *prop = drmModeGetProperty(drm_fd, props->props[j]);
+
+				if (strcmp(prop->name, "type") == 0) {
+					// If the plane type is "Overlay", assign this plane_id
+					for (uint32_t k = 0; k < prop->count_enums; k++) {
+						if (strcmp(prop->enums[k].name, "Overlay") == 0 && prop->enums[k].value == props->prop_values[j]) {
+							plane_id = plane->plane_id;
+							break;
+						}
+					}
+				}
+				drmModeFreeProperty(prop);
+			}
+			drmModeFreeObjectProperties(props);
+		}
+
+		drmModeFreePlane(plane);
+
+		if (plane_id) {
+			break;
+		}
+	}
+
+	drmModeFreePlaneResources(plane_res);
+
+	if (plane_id == 0) {
+		printf("No suitable overlay plane found\n");
+	}
+	return plane_id;
+}
+
 static void drm_init_config(vp_drm_context_t *drm_ctx, int32_t width, int32_t height)
 {
-	memset(drm_ctx, 0, sizeof(vp_drm_context_t));
 	drm_ctx->crtc_id = 31;
 	drm_ctx->connector_id = 75;
 	drm_ctx->width = width;
 	drm_ctx->height = height;
 
-	drm_ctx->plane_count = 2;
+	drm_ctx->plane_count = 1; // Support 1 plane in this example
 
-	for (int i = 0; i < drm_ctx->plane_count; i++)
-	{
-		if (i == 0)
-		{
-			drm_ctx->planes[i].plane_id = 33;
-			drm_ctx->planes[i].src_w = width;
-			drm_ctx->planes[i].src_h = height;
-			drm_ctx->planes[i].crtc_x = 0;
-			drm_ctx->planes[i].crtc_y = 0;
-			drm_ctx->planes[i].crtc_w = width;
-			drm_ctx->planes[i].crtc_h = height;
-			strcpy(drm_ctx->planes[i].format, "NV12");
+	const char *formats[2] = { "NV12", "AR24" }; // Formats for planes
 
-			drm_ctx->planes[i].z_pos = 0;
-			drm_ctx->planes[i].alpha = 65535;
-			drm_ctx->planes[i].pixel_blend_mode = 1;
-			drm_ctx->planes[i].rotation = -1;
-			drm_ctx->planes[i].color_encoding = -1;
-			drm_ctx->planes[i].color_range = -1;
-		} else if (i == 1)
-		{
-			drm_ctx->planes[i].plane_id = 40;
-			drm_ctx->planes[i].src_w = width;
-			drm_ctx->planes[i].src_h = height;
-			drm_ctx->planes[i].crtc_x = 0;
-			drm_ctx->planes[i].crtc_y = 0;
-			drm_ctx->planes[i].crtc_w = width;
-			drm_ctx->planes[i].crtc_h = height;
-			strcpy(drm_ctx->planes[i].format, "AR24");
-
-			drm_ctx->planes[i].z_pos = 1;
-			drm_ctx->planes[i].alpha = 65535;
-			drm_ctx->planes[i].pixel_blend_mode = 1;
-			drm_ctx->planes[i].rotation = -1;
-			drm_ctx->planes[i].color_encoding = -1;
-			drm_ctx->planes[i].color_range = -1;
+	for (int i = 0; i < drm_ctx->plane_count; i++) {
+		uint32_t plane_id = find_overlay_plane_id(drm_ctx->drm_fd);
+		if (plane_id == 0) {
+			printf("Failed to find overlay plane for format %s\n", formats[i]);
+			continue;
 		}
 
+		drm_ctx->planes[i].plane_id = plane_id;
+		drm_ctx->planes[i].src_w = width;
+		drm_ctx->planes[i].src_h = height;
+		drm_ctx->planes[i].crtc_x = 0;
+		drm_ctx->planes[i].crtc_y = 0;
+		drm_ctx->planes[i].crtc_w = width;
+		drm_ctx->planes[i].crtc_h = height;
+		strcpy(drm_ctx->planes[i].format, formats[i]);
+
+		drm_ctx->planes[i].z_pos = i; // Set z_pos based on plane index
+		drm_ctx->planes[i].alpha = 65535;
+		drm_ctx->planes[i].pixel_blend_mode = 1;
+		drm_ctx->planes[i].rotation = -1;
+		drm_ctx->planes[i].color_encoding = -1;
+		drm_ctx->planes[i].color_range = -1;
+
+		// Print plane details
 		printf("------------------------------------------------------\n");
 		printf("Plane %d:\n", i);
 		printf("  Plane ID: %d\n", drm_ctx->planes[i].plane_id);
@@ -658,13 +696,15 @@ int32_t vp_display_init(vp_drm_context_t *drm_ctx, int32_t width, int32_t height
 	int32_t ret = 0;
 	drmModeConnectorPtr connector = NULL;
 
-	drm_init_config(drm_ctx, width, height);
+	memset(drm_ctx, 0, sizeof(vp_drm_context_t));
 
 	drm_ctx->drm_fd = drmOpen("vs-drm", NULL);
 	if (drm_ctx->drm_fd < 0) {
 		perror("drmOpen failed");
 		return -1;
 	}
+
+	drm_init_config(drm_ctx, width, height);
 
 	connector = find_connector(drm_ctx->drm_fd);
 	if (connector == NULL) {

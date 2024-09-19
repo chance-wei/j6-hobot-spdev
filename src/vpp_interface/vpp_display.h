@@ -35,6 +35,10 @@
 #include <thread>
 #include <queue>
 
+
+#include "GC820/nano2D.h"
+#include "GC820/nano2D_util.h"
+
 #include "vp_wrap.h"
 #include "vpp_module.h"
 #include "vp_display.h"
@@ -88,10 +92,18 @@ namespace spdev
 		hbn_vnode_image_t m_vo_buffers[NUM_BUFFERS];
 		int32_t currentBufferIndex = 0;
 		hbn_vnode_image_t m_draw_buffers;
+		hbn_vnode_image_t m_final_buffers[2];
 		int32_t currentDrawBufferIndex = 0;
+
 		int32_t m_display_mode = 0; /* 0: libdrm; 1: egl x11 */
 
+		n2d_buffer_t primary_mapped_gpu_buffer[3];
+		n2d_buffer_t overlay_mapped_gpu_buffer[1];
+		n2d_buffer_t final_mapped_gpu_buffer[2];
+		n2d_buffer_t rgba_buffer;
 		void processRGBAQueue();
+		int32_t convertN2DBuffer(n2d_buffer_t *n2d_buffer, hb_mem_graphic_buf_t *hbm_buffer, n2d_buffer_format_t format);
+		n2d_error_t do_overlay(n2d_buffer_t *src0_nv12,n2d_buffer_t *scr1_ar24,n2d_buffer_t *dst0_nv12);
 	};
 
 }; // namespace spdev

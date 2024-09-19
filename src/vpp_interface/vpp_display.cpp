@@ -31,7 +31,8 @@ namespace spdev
 {
 
 	struct timeval tv_timestamp;
-
+	bool isGPUInit = false;
+	int32_t currentRenderBufferIndex = 0;
 	// Queue to hold RGBA buffers
 	std::queue<std::vector<uint8_t>> rgbaQueue;
 	std::mutex queueMutex;
@@ -158,6 +159,21 @@ int32_t VPPDisplay::OpenDisplay(int32_t width, int32_t height)
 			allocFlags,
 			width, height,
 			&m_draw_buffers.buffer);
+
+// final buffer for overlay process
+	memset(&m_final_buffers[0], 0, sizeof(hbn_vnode_image_t));
+	ret = hb_mem_alloc_graph_buf(width, height,
+			MEM_PIX_FMT_NV12,
+			allocFlags,
+			width, height,
+			&m_final_buffers[0].buffer);
+	memset(&m_final_buffers[1], 0, sizeof(hbn_vnode_image_t));
+	ret = hb_mem_alloc_graph_buf(width, height,
+			MEM_PIX_FMT_NV12,
+			allocFlags,
+			width, height,
+			&m_final_buffers[1].buffer);
+
 	if (ret != 0) {
 		SC_LOGE("hb_mem_alloc_graph_buf for m_draw_buffers failed error(%d)", ret);
 		for (int j = 0; j < NUM_BUFFERS; ++j) {
@@ -270,12 +286,174 @@ class FrameRateCounter {
 
 FrameRateCounter fpsCounter;
 
+n2d_error_t create_n2d_buffer_from_phyaddr_continuous_memory(n2d_buffer_t *n2d_buffer,
+    n2d_buffer_format_t format, n2d_uintptr_t phys_addr, int width, int height) {
+
+    n2d_error_t error = N2D_SUCCESS;
+
+    memset(n2d_buffer, 0, sizeof(n2d_buffer_t));
+    n2d_buffer->width = width;
+    n2d_buffer->height = height;
+
+    n2d_buffer->format = format;
+    n2d_buffer->orientation = N2D_0;
+    n2d_buffer->srcType = N2D_SOURCE_DEFAULT;
+    n2d_buffer->tiling = N2D_LINEAR;
+    n2d_buffer->cacheMode = N2D_CACHE_128;
+
+    n2d_uintptr_t n2d_buffer_handle;
+    n2d_user_memory_desc_t n2d_buffer_mem_desc;
+    n2d_buffer_mem_desc.flag = N2D_WRAP_FROM_USERMEMORY;
+    n2d_buffer_mem_desc.logical = 0; //
+    n2d_buffer_mem_desc.physical = phys_addr;
+
+    if (format == N2D_RGBA8888) {
+        // ARGB8888
+        n2d_buffer->alignedw = gcmALIGN(n2d_buffer->width, 4);  // 宽度对齐到4字节
+        n2d_buffer->alignedh = n2d_buffer->height;
+        n2d_buffer->stride = gcmALIGN(n2d_buffer->alignedw * 4, 4);  // 步幅对齐到4字节
+
+        // ARGB8888
+        n2d_buffer_mem_desc.size = n2d_buffer->stride * n2d_buffer->alignedh;
+
+    } else if (format == N2D_NV12) {
+        // NV12
+        n2d_buffer->alignedw = gcmALIGN(n2d_buffer->width, 64);  // 宽度对齐到64字节
+        n2d_buffer->alignedh = n2d_buffer->height;
+
+        // NV12
+        float nv12_bpp = gcmALIGN(16, 8) * 1.0f / 8;
+        n2d_buffer->stride = gcmALIGN(gcmFLOAT2INT(n2d_buffer->alignedw * nv12_bpp), 64);  // 步幅对齐到64字节
+
+        // NV12
+        n2d_buffer_mem_desc.size = n2d_buffer->stride * n2d_buffer->alignedh * 3 / 2;
+    } else {
+
+        return N2D_INVALID_ARGUMENT;
+    }
+
+
+
+    error = n2d_wrap(&n2d_buffer_mem_desc, &n2d_buffer_handle);
+    if (N2D_IS_ERROR(error)) {
+        return error;
+    }
+
+    n2d_buffer->handle = n2d_buffer_handle;
+    error = n2d_map(n2d_buffer);
+    if (N2D_IS_ERROR(error)) {
+        return error;
+    }
+
+    return N2D_SUCCESS;
+}
+
+n2d_error_t VPPDisplay::do_overlay(n2d_buffer_t *src0_nv12,n2d_buffer_t *scr1_ar24,n2d_buffer_t *dst0_nv12){
+	n2d_error_t error	       = N2D_SUCCESS;
+	n2d_rectangle_t rect;
+	rect.x = 0; //top left
+	rect.y = 0;
+	rect.width = scr1_ar24->width;
+	rect.height = scr1_ar24->height;
+
+	N2D_ON_ERROR(n2d_blit(&rgba_buffer, N2D_NULL, src0_nv12, N2D_NULL, N2D_BLEND_NONE));
+	N2D_ON_ERROR(n2d_blit(&rgba_buffer, &rect , scr1_ar24, N2D_NULL, N2D_BLEND_SRC_OVER));
+	N2D_ON_ERROR(n2d_blit(dst0_nv12, &rect , &rgba_buffer, N2D_NULL, N2D_BLEND_NONE));
+	N2D_ON_ERROR(n2d_commit());
+	return error;
+on_error:
+	n2d_free(src0_nv12);
+	n2d_free(scr1_ar24);
+	n2d_free(dst0_nv12);
+	return error;
+}
+
+
+int32_t VPPDisplay::convertN2DBuffer(n2d_buffer_t *n2d_buffer, hb_mem_graphic_buf_t *hbm_buffer, n2d_buffer_format_t format){
+	n2d_error_t error = N2D_SUCCESS;
+
+	error = create_n2d_buffer_from_phyaddr_continuous_memory(n2d_buffer, format,
+		(n2d_uintptr_t)hbm_buffer->phys_addr[0], hbm_buffer->width, hbm_buffer->height);
+
+	return error;
+}
+
+size_t get_nv12_size(int width, int height) {
+    return width * height * 1.5; // Y plane + UV plane
+}
+
+size_t get_argb8888_size(int width, int height) {
+    return width * height * 4; // 每个像素4字节
+}
+
+void save_image_to_file(const char* file_name, void* buffer, size_t size) {
+
+    FILE* file = fopen(file_name, "wb");
+    if (!file) {
+        printf("Failed to open file %s for writing\n", file_name);
+        return;
+    }
+
+
+    size_t written = fwrite(buffer, 1, size, file);
+    if (written != size) {
+        printf("Failed to write all data to file. Written: %zu, Expected: %zu\n", written, size);
+    }
+
+
+    fclose(file);
+    printf("Image data successfully saved to %s\n", file_name);
+}
+
 int32_t VPPDisplay::SetImageFrame(ImageFrame *frame) {
 	int32_t ret = 0;
 
 	if (2 == m_display_mode) {
 		fpsCounter.update();
 		return 0;
+	}
+
+	//Must ensure that the n2d_open and the final compositing operations are executed on the same thread.
+	if(isGPUInit == false){
+		ret = n2d_open();
+		if(ret)
+		{
+			LOGE_print("n2d_open fail,ret:%d\n",ret);
+		}
+
+		for (size_t i = 0; i < 3; i++)
+		{
+			ret = convertN2DBuffer(&primary_mapped_gpu_buffer[i],&m_vo_buffers[i].buffer, N2D_NV12);
+			if(ret){
+				LOGE_print("convertN2DBuffer(NV12) fail,ret:%d\n",ret);
+			}
+		}
+
+		ret = convertN2DBuffer(&overlay_mapped_gpu_buffer[0],&m_draw_buffers.buffer, N2D_RGBA8888);
+		if(ret){
+			LOGE_print("convertN2DBuffer(AR24) fail,ret:%d\n",ret);
+		}
+
+		ret = convertN2DBuffer(&final_mapped_gpu_buffer[0],&m_final_buffers[0].buffer, N2D_NV12);
+		if(ret){
+			LOGE_print("convertN2DBuffer(NV12 final) fail,ret:%d\n",ret);
+		}
+		ret = convertN2DBuffer(&final_mapped_gpu_buffer[1],&m_final_buffers[1].buffer, N2D_NV12);
+		if(ret){
+			LOGE_print("convertN2DBuffer(NV12 final) fail,ret:%d\n",ret);
+		}
+		memset(&rgba_buffer,0,sizeof(n2d_buffer_t));
+		n2d_util_allocate_buffer(
+        m_vo_buffers[0].buffer.width,
+        m_vo_buffers[0].buffer.height,
+        N2D_RGBA8888,
+        N2D_0,
+        N2D_LINEAR,
+        N2D_TSC_DISABLE,
+        &rgba_buffer);
+
+		LOGI_print("N2D init done!\n");
+		isGPUInit = true;
 	}
 
 	hbn_vnode_image_t& currentBuffer = m_vo_buffers[currentBufferIndex];
@@ -286,7 +464,11 @@ int32_t VPPDisplay::SetImageFrame(ImageFrame *frame) {
 	}
 
 	if (0 == m_display_mode) {
-		ret = vp_display_set_frame(&m_drm_ctx, 0, &currentBuffer);
+		// let's do overlay
+		do_overlay(&primary_mapped_gpu_buffer[currentBufferIndex], &overlay_mapped_gpu_buffer[0], &final_mapped_gpu_buffer[currentRenderBufferIndex]);
+		ret = vp_display_set_frame(&m_drm_ctx, 0, &m_final_buffers[currentRenderBufferIndex]);
+		currentRenderBufferIndex = (currentRenderBufferIndex + 1) % 2;
+
 	} else if (1 == m_display_mode) {
 		std::vector<uint8_t> rgbaData(frame->width * frame->height * 4);
 
@@ -302,7 +484,7 @@ int32_t VPPDisplay::SetImageFrame(ImageFrame *frame) {
 		}
 		queueCV.notify_one();  // Notify the consumer thread to process the RGBA data
 	}
-
+err:
 	return ret;
 }
 
@@ -329,7 +511,7 @@ int32_t VPPDisplay::SetGraphRect(int32_t x0, int32_t y0, int32_t x1, int32_t y1,
 		y1 = (y1 < (m_height - line_width)) ? ((y1 >= 0) ? y1 : 0) : (m_height - line_width);
 
 		if (flush) {
-			ret = vp_display_set_frame(&m_drm_ctx, 1, &m_draw_buffers);
+			//ret = vp_display_set_frame(&m_drm_ctx, 1, &m_draw_buffers);
 			memset(m_draw_buffers.buffer.virt_addr[0], 0, m_width * m_height * DISPLAY_ARGB_BYTES);
 		}
 
