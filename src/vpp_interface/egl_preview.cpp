@@ -224,7 +224,6 @@ void EGLPreviewWindow::show(const std::vector<uint8_t>& rgba_data) {
 void EGLPreviewWindow::update(const std::vector<uint8_t>& rgba_data) {
 	upload_texture(rgba_data);
 	draw();  // Draw the current texture
-	eglSwapBuffers(egl_display, egl_surface);
 }
 
 void EGLPreviewWindow::processEvents() {
