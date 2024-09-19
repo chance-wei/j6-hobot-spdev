@@ -721,7 +721,7 @@ int32_t vp_codec_set_input(media_codec_context_t *context, ImageFrame *frame, in
 		/* Due to the possibility that the camera may transmit the Y component and UV components
 		separately during data transmission, it is necessary to make a determination.*/
 		// buffer->vframe_buf.size = frame->data_size[0];
-		if (frame->vnode_image.buffer.plane_cnt == 2){
+		if (frame->plane_count == 2){
 			buffer->vframe_buf.size = frame->data_size[0] + frame->data_size[1];
 		} else {
 			buffer->vframe_buf.size = frame->data_size[0];
