@@ -189,6 +189,7 @@ namespace spdev
 		camera_config_t *camera_config = NULL;
 		isp_ichn_attr_t *isp_ichn_attr = NULL;
 		vse_config_t *vse_config = NULL;
+		vp_csi_config_t csi_config = {0};
 		int32_t input_width = 0, input_height = 0;
 		board_camera_info_t camera_info[MAX_CAMERAS];
 
@@ -217,14 +218,14 @@ namespace spdev
 		if (video_index >= 0 && video_index < MAX_CAMERAS) {
 			vp_vflow_contex->mipi_csi_rx_index = camera_info[video_index].mipi_host;
 			vp_vflow_contex->sensor_config =
-				vp_get_sensor_config_by_mipi_host(camera_info[video_index].mipi_host);
+				vp_get_sensor_config_by_mipi_host(camera_info[video_index].mipi_host, &csi_config);
 		} else if (video_index == -1) {
 			for (int i = 0; i < MAX_CAMERAS; i++) {
 				if (!camera_info[i].enable)
 					continue;
 				vp_vflow_contex->mipi_csi_rx_index = camera_info[i].mipi_host;
 				vp_vflow_contex->sensor_config =
-					vp_get_sensor_config_by_mipi_host(camera_info[i].mipi_host);
+					vp_get_sensor_config_by_mipi_host(camera_info[i].mipi_host, &csi_config);
 				if (vp_vflow_contex->sensor_config != NULL)
 					break;
 			}
@@ -242,6 +243,7 @@ namespace spdev
 		// 2. Setting Vse channel
 		vse_config = &vp_vflow_contex->vse_config;
 		isp_ichn_attr = vp_vflow_contex->sensor_config->isp_ichn_attr;
+		vp_vflow_contex->mclk_is_not_configed = csi_config.mclk_is_not_configed;
 
 		input_width = isp_ichn_attr->width;
 		input_height = isp_ichn_attr->height;

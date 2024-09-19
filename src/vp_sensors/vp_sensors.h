@@ -83,7 +83,8 @@ void vp_sensor_detect_structed(csi_list_info_t *csi_list_info);
 
 int32_t vp_sensor_fixed_mipi_host(vp_sensor_config_t *sensor_config, vp_csi_config_t* csi_config);
 int32_t vp_sensor_multi_fixed_mipi_host(vp_sensor_config_t *sensor_config, int used_mipi_host, vp_csi_config_t* csi_config);
-vp_sensor_config_t *vp_get_sensor_config_by_mipi_host(int32_t mipi_host_index);
+vp_sensor_config_t *vp_get_sensor_config_by_mipi_host(int32_t mipi_host_index,
+	vp_csi_config_t* csi_config);
 
 #ifdef __cplusplus
 }

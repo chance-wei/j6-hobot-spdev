@@ -764,7 +764,8 @@ int32_t vp_sensor_fixed_mipi_host(vp_sensor_config_t *sensor_config, vp_csi_conf
 	return ret;
 }
 
-vp_sensor_config_t *vp_get_sensor_config_by_mipi_host(int32_t mipi_host_index)
+vp_sensor_config_t *vp_get_sensor_config_by_mipi_host(int32_t mipi_host_index,
+	vp_csi_config_t* csi_config)
 {
 	int32_t ret = 0, j = 0;
 	uint32_t frequency = 24000000;
@@ -780,11 +781,13 @@ vp_sensor_config_t *vp_get_sensor_config_by_mipi_host(int32_t mipi_host_index)
 	int mclk_is_not_configed = vp_sensor_mipi_host_mclk_is_not_configed(mipi_host_index);
 	read_vcon_info_from_device_tree(mipi_host_index, &vcon_props_array[mipi_host_index]);
 
-	if(!mclk_is_not_configed){
+	if(!mclk_is_not_configed) {
 		/* enable mclk */
 		write_mipi_host_freq(mipi_host_index, frequency);
 		enable_mipi_host_clock(mipi_host_index, 1);
 	}
+
+	csi_config->mclk_is_not_configed = mclk_is_not_configed;
 
 	printf("Searching camera sensor on device: %s ", vcon_props_array[mipi_host_index].device_path);
 	printf("i2c bus: %d ", vcon_props_array[mipi_host_index].bus);
