@@ -92,6 +92,8 @@ PyObject* buffer_2_pyarray(void *arr, hbDNNTensorProperties &properties) {
     switch (dataType) {
         case HB_DNN_TENSOR_TYPE_S8:
             return buffer_2_numpy(reinterpret_cast<int8_t *>(arr), properties, NPY_INT8, sizeof(int8_t));
+        case HB_DNN_TENSOR_TYPE_S16:
+            return buffer_2_numpy(reinterpret_cast<int16_t *>(arr), properties, NPY_INT32, sizeof(int16_t));
         case HB_DNN_TENSOR_TYPE_S32:
             return buffer_2_numpy(reinterpret_cast<int32_t *>(arr), properties, NPY_INT32, sizeof(int32_t));
         case HB_DNN_TENSOR_TYPE_F32:
