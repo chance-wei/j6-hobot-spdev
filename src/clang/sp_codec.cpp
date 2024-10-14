@@ -57,7 +57,7 @@ int sp_stop_encode(void *obj)
     return -1;
 }
 
-int sp_set_frame(void *obj, char *frame_buffer, int32_t size)
+int sp_encoder_set_frame(void *obj, char *frame_buffer, int32_t size)
 {
     if (obj != NULL)
     {
