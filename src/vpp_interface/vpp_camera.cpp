@@ -184,7 +184,7 @@ namespace spdev
 	{
 		int i = 0;
 		int ret = 0;
-		int mipi_width = 0, mipi_height = 0;
+		int sensor_width = 0, sensor_height = 0, sensor_fps = 0;
 		int vse_chn = 0, vse_chn_en = 0;
 		camera_config_t *camera_config = NULL;
 		isp_ichn_attr_t *isp_ichn_attr = NULL;
@@ -192,9 +192,11 @@ namespace spdev
 		vp_csi_config_t csi_config = {0};
 		int32_t input_width = 0, input_height = 0;
 		board_camera_info_t camera_info[MAX_CAMERAS];
-
+		sensor_fps = parameters->fps;
+		sensor_width = parameters->raw_width;
+		sensor_height = parameters->raw_height;
 		memset(vp_vflow_contex, 0, sizeof(vp_vflow_contex_t));
-
+		printf("set camera fps: %d,width: %d,height: %d\n",fps,parameters->raw_width,parameters->raw_height);
 		memset(camera_info, 0, sizeof(camera_info));
 		ret = parse_config("/etc/board_config.json", camera_info);
 		if (ret != 0) {
@@ -218,14 +220,14 @@ namespace spdev
 		if (video_index >= 0 && video_index < MAX_CAMERAS) {
 			vp_vflow_contex->mipi_csi_rx_index = camera_info[video_index].mipi_host;
 			vp_vflow_contex->sensor_config =
-				vp_get_sensor_config_by_mipi_host(camera_info[video_index].mipi_host, &csi_config);
+				vp_get_sensor_config_by_mipi_host(camera_info[video_index].mipi_host, &csi_config,sensor_height,sensor_width,sensor_fps);
 		} else if (video_index == -1) {
 			for (int i = 0; i < MAX_CAMERAS; i++) {
 				if (!camera_info[i].enable)
 					continue;
 				vp_vflow_contex->mipi_csi_rx_index = camera_info[i].mipi_host;
 				vp_vflow_contex->sensor_config =
-					vp_get_sensor_config_by_mipi_host(camera_info[i].mipi_host, &csi_config);
+					vp_get_sensor_config_by_mipi_host(camera_info[i].mipi_host, &csi_config, sensor_height, sensor_width, sensor_fps);
 				if (vp_vflow_contex->sensor_config != NULL)
 					break;
 			}

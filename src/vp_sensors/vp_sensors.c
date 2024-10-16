@@ -543,6 +543,12 @@ static void should_used_csi(int *is_need_used_csi)
 			is_need_used_csi[1] = false;// board 301 not use csi1 csi3
 			is_need_used_csi[3] = false;
 		}
+
+		if (strncmp(board_id, "302", 3) == 0) {
+			printf("[INFO] board_id is %s, so skip csi test for index 1 and index 3\n", board_id);
+			is_need_used_csi[1] = false;// board 302 not use csi1 csi3
+			is_need_used_csi[3] = false;
+		}
 	} else {
 		printf("read board_id file failed, so skip csi.\n");
 	}
@@ -771,7 +777,7 @@ int32_t vp_sensor_fixed_mipi_host(vp_sensor_config_t *sensor_config, vp_csi_conf
 }
 
 vp_sensor_config_t *vp_get_sensor_config_by_mipi_host(int32_t mipi_host_index,
-	vp_csi_config_t* csi_config)
+	vp_csi_config_t* csi_config,int sensor_height,int sensor_width,int sensor_fps)
 {
 	int32_t ret = 0, j = 0;
 	uint32_t frequency = 24000000;
@@ -815,16 +821,30 @@ vp_sensor_config_t *vp_get_sensor_config_by_mipi_host(int32_t mipi_host_index,
 
 			int ret = check_sensor_reg_value(vcon_props_array[mipi_host_index], vp_sensor_config_list[j]);
 			if (ret == 0) {
-				printf("INFO: Found sensor name:%s on mipi rx csi %d, "
+				if(vp_sensor_config_list[j]->camera_config->height ==  sensor_height && 
+					vp_sensor_config_list[j]->camera_config->width == sensor_width && 
+					vp_sensor_config_list[j]->camera_config->fps == sensor_fps) {
+					printf("INFO: Found sensor name:%s on mipi rx csi %d, "
 						"i2c addr 0x%x, config_file:%s\n",
 					vp_sensor_config_list[j]->sensor_name,
 					vcon_props_array[mipi_host_index].rx_phy[1],
 					vp_sensor_config_list[j]->camera_config->addr,
 					vp_sensor_config_list[j]->config_file);
-				/* Fixed Mipi host */
-				vp_sensor_config_list[j]->vin_node_attr->cim_attr.mipi_rx =
-					vcon_props_array[mipi_host_index].rx_phy[1];
-				return vp_sensor_config_list[j];
+					/* Fixed Mipi host */
+					vp_sensor_config_list[j]->vin_node_attr->cim_attr.mipi_rx = vcon_props_array[mipi_host_index].rx_phy[1];
+					return vp_sensor_config_list[j];
+				}
+				if(sensor_height == -1 && sensor_width == -1) {
+					printf("INFO: Found sensor name:%s on mipi rx csi %d, "
+						"i2c addr 0x%x, config_file:%s\n",
+					vp_sensor_config_list[j]->sensor_name,
+					vcon_props_array[mipi_host_index].rx_phy[1],
+					vp_sensor_config_list[j]->camera_config->addr,
+					vp_sensor_config_list[j]->config_file);
+					/* Fixed Mipi host */
+					vp_sensor_config_list[j]->vin_node_attr->cim_attr.mipi_rx = vcon_props_array[mipi_host_index].rx_phy[1];
+					return vp_sensor_config_list[j];
+				}
 			}
 		}
 	}
