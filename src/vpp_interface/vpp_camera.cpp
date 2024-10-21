@@ -220,14 +220,14 @@ namespace spdev
 		if (video_index >= 0 && video_index < MAX_CAMERAS) {
 			vp_vflow_contex->mipi_csi_rx_index = camera_info[video_index].mipi_host;
 			vp_vflow_contex->sensor_config =
-				vp_get_sensor_config_by_mipi_host(camera_info[video_index].mipi_host, &csi_config,sensor_height,sensor_width,sensor_fps);
+				vp_get_sensor_config_by_mipi_host_and_sensor_resolution(camera_info[video_index].mipi_host, &csi_config,sensor_height,sensor_width,sensor_fps);
 		} else if (video_index == -1) {
 			for (int i = 0; i < MAX_CAMERAS; i++) {
 				if (!camera_info[i].enable)
 					continue;
 				vp_vflow_contex->mipi_csi_rx_index = camera_info[i].mipi_host;
 				vp_vflow_contex->sensor_config =
-					vp_get_sensor_config_by_mipi_host(camera_info[i].mipi_host, &csi_config, sensor_height, sensor_width, sensor_fps);
+					vp_get_sensor_config_by_mipi_host(camera_info[i].mipi_host, &csi_config);
 				if (vp_vflow_contex->sensor_config != NULL)
 					break;
 			}
