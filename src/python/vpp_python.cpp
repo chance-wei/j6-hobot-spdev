@@ -293,7 +293,7 @@ extern "C"
 			chn_num++;
 		}
 		return Py_BuildValue("i",
-			cam->OpenCamera(pipe_id, video_index, fps, chn_num, width, height,
+			cam->OpenCamera(pipe_id, video_index, chn_num, width, height,
 				&sensors_parameters));
 	}
 

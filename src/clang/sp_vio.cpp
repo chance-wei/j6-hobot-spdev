@@ -50,7 +50,7 @@ int32_t sp_open_camera(void *obj, const int32_t pipe_id,
             height[chn_num] = 0;
             chn_num++;
         }
-        return sp->OpenCamera(pipe_id, video_index, 30, chn_num, width, height, NULL);
+        return sp->OpenCamera(pipe_id, video_index, chn_num, width, height, NULL);
     }
     return -1;
 }
@@ -77,7 +77,6 @@ int32_t sp_open_camera_v2(void *obj, const int32_t pipe_id,
         }
         vp_sensors_parameters *_parameters = (vp_sensors_parameters *)parameters;
         return sp->OpenCamera(pipe_id, video_index,
-            parameters->fps==-1?30:parameters->fps,
             chn_num, width, height, _parameters);
     }
     return -1;

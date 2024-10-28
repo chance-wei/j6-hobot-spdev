@@ -178,13 +178,13 @@ namespace spdev
 	}
 
 	int32_t VPPCamera::CamInitParam(vp_vflow_contex_t *vp_vflow_contex,
-					const int pipe_id, const int video_index, int fps,
+					const int pipe_id, const int video_index,
 					int chn_num, int *width, int *height,
 					vp_sensors_parameters *parameters)
 	{
 		int i = 0;
 		int ret = 0;
-		int sensor_width = 0, sensor_height = 0, sensor_fps = 0;
+		int sensor_width = -1, sensor_height = -1, sensor_fps = -1;
 		int vse_chn = 0, vse_chn_en = 0;
 		camera_config_t *camera_config = NULL;
 		isp_ichn_attr_t *isp_ichn_attr = NULL;
@@ -192,11 +192,15 @@ namespace spdev
 		vp_csi_config_t csi_config = {0};
 		int32_t input_width = 0, input_height = 0;
 		board_camera_info_t camera_info[MAX_CAMERAS];
-		sensor_fps = parameters->fps;
-		sensor_width = parameters->raw_width;
-		sensor_height = parameters->raw_height;
+
+		if(parameters != NULL)
+		{
+			sensor_fps = parameters->fps;
+			sensor_width = parameters->raw_width;
+			sensor_height = parameters->raw_height;
+		}
 		memset(vp_vflow_contex, 0, sizeof(vp_vflow_contex_t));
-		printf("set camera fps: %d,width: %d,height: %d\n",fps,parameters->raw_width,parameters->raw_height);
+		printf("set camera fps: %d,width: %d,height: %d\n",sensor_fps,sensor_width,sensor_height);
 		memset(camera_info, 0, sizeof(camera_info));
 		ret = parse_config("/etc/board_config.json", camera_info);
 		if (ret != 0) {
@@ -220,14 +224,14 @@ namespace spdev
 		if (video_index >= 0 && video_index < MAX_CAMERAS) {
 			vp_vflow_contex->mipi_csi_rx_index = camera_info[video_index].mipi_host;
 			vp_vflow_contex->sensor_config =
-				vp_get_sensor_config_by_mipi_host_and_sensor_resolution(camera_info[video_index].mipi_host, &csi_config,sensor_height,sensor_width,sensor_fps);
+				vp_get_sensor_config_by_mipi_host(camera_info[video_index].mipi_host, &csi_config,sensor_height,sensor_width,sensor_fps);
 		} else if (video_index == -1) {
 			for (int i = 0; i < MAX_CAMERAS; i++) {
 				if (!camera_info[i].enable)
 					continue;
 				vp_vflow_contex->mipi_csi_rx_index = camera_info[i].mipi_host;
 				vp_vflow_contex->sensor_config =
-					vp_get_sensor_config_by_mipi_host(camera_info[i].mipi_host, &csi_config);
+					vp_get_sensor_config_by_mipi_host(camera_info[i].mipi_host, &csi_config,sensor_height,sensor_width,sensor_fps);
 				if (vp_vflow_contex->sensor_config != NULL)
 					break;
 			}
@@ -378,7 +382,7 @@ namespace spdev
 		return ret;
 	}
 	int32_t VPPCamera::OpenCamera(const int pipe_id,
-								  const int32_t video_index, int fps,
+								  const int32_t video_index,
 								  int32_t chn_num,
 								  int32_t *width, int32_t *height,
 								  vp_sensors_parameters *parameters)
@@ -386,7 +390,7 @@ namespace spdev
 		int32_t ret = 0;
 		vp_vflow_contex_t *vp_vflow_contex = &m_vp_vflow_context;
 		// TODO: 根据 video_index 和 chn_num 完成sensor的探测、初始化、开流
-		ret = CamInitParam(vp_vflow_contex, pipe_id, video_index, fps, chn_num,
+		ret = CamInitParam(vp_vflow_contex, pipe_id, video_index, chn_num,
 			width, height, parameters);
 		if (ret != 0){
 			SC_LOGE("CamInitParam failed error(%d)", ret);
