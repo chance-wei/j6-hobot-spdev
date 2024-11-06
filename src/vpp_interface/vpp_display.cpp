@@ -76,132 +76,138 @@ bool is_drm_available() {
 
 int32_t VPPDisplay::OpenDisplay(int32_t width, int32_t height)
 {
-	int32_t ret = 0;
-	int64_t allocFlags = 0;
+//	int32_t ret = 0;
+//	int64_t allocFlags = 0;
+//
+//	m_width = width;
+//	m_height = height;
+//
+//	if (is_x11_or_wayland_available()) {
+//		printf("X11 is available, using EGL for rendering.\n");
+//		// 使用 EGL 进行显示
+//		m_display_mode = 1;
+//	} else if (is_drm_available()) {
+//		printf("DRM is available, using libdrm for rendering.\n");
+//		// 使用 libdrm 进行显示
+//		m_display_mode = 0;
+//	} else {
+//		printf("No suitable display method found.\n");
+//		printf("Running without preview window\n");
+//		m_display_mode = 2;
+//		return 0;
+//	}
+//
+//	if (2 == m_display_mode) {
+//		return 0;
+//	} else if (0 == m_display_mode) {
+//		hb_mem_module_open();
+//
+//		vp_display_init(&m_drm_ctx, width, height);
+//
+//		allocFlags = HB_MEM_USAGE_MAP_INITIALIZED |
+//						HB_MEM_USAGE_PRIV_HEAP_2_RESERVERD |
+//						HB_MEM_USAGE_CPU_READ_OFTEN |
+//						HB_MEM_USAGE_CPU_WRITE_OFTEN |
+//						HB_MEM_USAGE_CACHED |
+//						HB_MEM_USAGE_GRAPHIC_CONTIGUOUS_BUF;
+//
+//		for (int i = 0; i < NUM_BUFFERS; ++i) {
+//			memset(&m_vo_buffers[i], 0, sizeof(hbn_vnode_image_t));
+//			ret = hb_mem_alloc_graph_buf(width, height,
+//					MEM_PIX_FMT_NV12,
+//					allocFlags,
+//					width, height,
+//					&m_vo_buffers[i].buffer);
+//			if (ret != 0) {
+//				SC_LOGE("hb_mem_alloc_graph_buf for buffer[%d] failed error(%d)", i, ret);
+//				for (int j = 0; j < i; ++j) {
+//					hb_mem_free_buf(m_vo_buffers[j].buffer.fd[0]);
+//				}
+//				return -1;
+//			}
+//		}
+//	} else if (1 == m_display_mode) {
+//		allocFlags = HB_MEM_USAGE_MAP_INITIALIZED |
+//						HB_MEM_USAGE_PRIV_HEAP_2_RESERVERD |
+//						HB_MEM_USAGE_CPU_READ_OFTEN |
+//						HB_MEM_USAGE_CPU_WRITE_OFTEN |
+//						HB_MEM_USAGE_CACHED |
+//						HB_MEM_USAGE_GRAPHIC_CONTIGUOUS_BUF;
+//
+//		for (int i = 0; i < NUM_BUFFERS; ++i) {
+//			memset(&m_vo_buffers[i], 0, sizeof(hbn_vnode_image_t));
+//			ret = hb_mem_alloc_graph_buf(width, height,
+//					MEM_PIX_FMT_NV12,
+//					allocFlags,
+//					width, height,
+//					&m_vo_buffers[i].buffer);
+//			if (ret != 0) {
+//				SC_LOGE("hb_mem_alloc_graph_buf for buffer[%d] failed error(%d)", i, ret);
+//				for (int j = 0; j < i; ++j) {
+//					hb_mem_free_buf(m_vo_buffers[j].buffer.fd[0]);
+//				}
+//				return -1;
+//			}
+//		}
+//
+//		startProcessingThread();
+//	}
+//
+//	memset(&m_draw_buffers, 0, sizeof(hbn_vnode_image_t));
+//	ret = hb_mem_alloc_graph_buf(width, height,
+//			MEM_PIX_FMT_ARGB,
+//			allocFlags,
+//			width, height,
+//			&m_draw_buffers.buffer);
+//
+//// final buffer for overlay process
+//	memset(&m_final_buffers[0], 0, sizeof(hbn_vnode_image_t));
+//	ret = hb_mem_alloc_graph_buf(width, height,
+//			MEM_PIX_FMT_NV12,
+//			allocFlags,
+//			width, height,
+//			&m_final_buffers[0].buffer);
+//	memset(&m_final_buffers[1], 0, sizeof(hbn_vnode_image_t));
+//	ret = hb_mem_alloc_graph_buf(width, height,
+//			MEM_PIX_FMT_NV12,
+//			allocFlags,
+//			width, height,
+//			&m_final_buffers[1].buffer);
+//
+//	if (ret != 0) {
+//		SC_LOGE("hb_mem_alloc_graph_buf for m_draw_buffers failed error(%d)", ret);
+//		for (int j = 0; j < NUM_BUFFERS; ++j) {
+//			hb_mem_free_buf(m_vo_buffers[j].buffer.fd[0]);
+//		}
+//		return -1;
+//	}
+//
+//	return ret;
 
-	m_width = width;
-	m_height = height;
-
-	if (is_x11_or_wayland_available()) {
-		printf("X11 is available, using EGL for rendering.\n");
-		// 使用 EGL 进行显示
-		m_display_mode = 1;
-	} else if (is_drm_available()) {
-		printf("DRM is available, using libdrm for rendering.\n");
-		// 使用 libdrm 进行显示
-		m_display_mode = 0;
-	} else {
-		printf("No suitable display method found.\n");
-		printf("Running without preview window\n");
-		m_display_mode = 2;
-		return 0;
-	}
-
-	if (2 == m_display_mode) {
-		return 0;
-	} else if (0 == m_display_mode) {
-		hb_mem_module_open();
-
-		vp_display_init(&m_drm_ctx, width, height);
-
-		allocFlags = HB_MEM_USAGE_MAP_INITIALIZED |
-						HB_MEM_USAGE_PRIV_HEAP_2_RESERVERD |
-						HB_MEM_USAGE_CPU_READ_OFTEN |
-						HB_MEM_USAGE_CPU_WRITE_OFTEN |
-						HB_MEM_USAGE_CACHED |
-						HB_MEM_USAGE_GRAPHIC_CONTIGUOUS_BUF;
-
-		for (int i = 0; i < NUM_BUFFERS; ++i) {
-			memset(&m_vo_buffers[i], 0, sizeof(hbn_vnode_image_t));
-			ret = hb_mem_alloc_graph_buf(width, height,
-					MEM_PIX_FMT_NV12,
-					allocFlags,
-					width, height,
-					&m_vo_buffers[i].buffer);
-			if (ret != 0) {
-				SC_LOGE("hb_mem_alloc_graph_buf for buffer[%d] failed error(%d)", i, ret);
-				for (int j = 0; j < i; ++j) {
-					hb_mem_free_buf(m_vo_buffers[j].buffer.fd[0]);
-				}
-				return -1;
-			}
-		}
-	} else if (1 == m_display_mode) {
-		allocFlags = HB_MEM_USAGE_MAP_INITIALIZED |
-						HB_MEM_USAGE_PRIV_HEAP_2_RESERVERD |
-						HB_MEM_USAGE_CPU_READ_OFTEN |
-						HB_MEM_USAGE_CPU_WRITE_OFTEN |
-						HB_MEM_USAGE_CACHED |
-						HB_MEM_USAGE_GRAPHIC_CONTIGUOUS_BUF;
-
-		for (int i = 0; i < NUM_BUFFERS; ++i) {
-			memset(&m_vo_buffers[i], 0, sizeof(hbn_vnode_image_t));
-			ret = hb_mem_alloc_graph_buf(width, height,
-					MEM_PIX_FMT_NV12,
-					allocFlags,
-					width, height,
-					&m_vo_buffers[i].buffer);
-			if (ret != 0) {
-				SC_LOGE("hb_mem_alloc_graph_buf for buffer[%d] failed error(%d)", i, ret);
-				for (int j = 0; j < i; ++j) {
-					hb_mem_free_buf(m_vo_buffers[j].buffer.fd[0]);
-				}
-				return -1;
-			}
-		}
-
-		startProcessingThread();
-	}
-
-	memset(&m_draw_buffers, 0, sizeof(hbn_vnode_image_t));
-	ret = hb_mem_alloc_graph_buf(width, height,
-			MEM_PIX_FMT_ARGB,
-			allocFlags,
-			width, height,
-			&m_draw_buffers.buffer);
-
-// final buffer for overlay process
-	memset(&m_final_buffers[0], 0, sizeof(hbn_vnode_image_t));
-	ret = hb_mem_alloc_graph_buf(width, height,
-			MEM_PIX_FMT_NV12,
-			allocFlags,
-			width, height,
-			&m_final_buffers[0].buffer);
-	memset(&m_final_buffers[1], 0, sizeof(hbn_vnode_image_t));
-	ret = hb_mem_alloc_graph_buf(width, height,
-			MEM_PIX_FMT_NV12,
-			allocFlags,
-			width, height,
-			&m_final_buffers[1].buffer);
-
-	if (ret != 0) {
-		SC_LOGE("hb_mem_alloc_graph_buf for m_draw_buffers failed error(%d)", ret);
-		for (int j = 0; j < NUM_BUFFERS; ++j) {
-			hb_mem_free_buf(m_vo_buffers[j].buffer.fd[0]);
-		}
-		return -1;
-	}
-
-	return ret;
+// to do display准备好后再开启
+	return 0;
 }
 
 int32_t VPPDisplay::Close()
 {
-	int32_t ret = 0;
-	if (0 == m_display_mode) {
-		hb_mem_free_buf(m_draw_buffers.buffer.fd[0]);
-		for (int i = 0; i < NUM_BUFFERS; ++i) {
-			hb_mem_free_buf(m_vo_buffers[i].buffer.fd[0]);
-		}
-		vp_display_deinit(&m_drm_ctx);
-		hb_mem_module_close();
-	} else if (1 == m_display_mode) {
-		hb_mem_free_buf(m_draw_buffers.buffer.fd[0]);
-		EGLPreviewWindow& window = EGLPreviewWindow::getInstance();
-		window.close();
-	}
+//	int32_t ret = 0;
+//	if (0 == m_display_mode) {
+//		hb_mem_free_buf(m_draw_buffers.buffer.fd[0]);
+//		for (int i = 0; i < NUM_BUFFERS; ++i) {
+//			hb_mem_free_buf(m_vo_buffers[i].buffer.fd[0]);
+//		}
+//		vp_display_deinit(&m_drm_ctx);
+//		hb_mem_module_close();
+//	} else if (1 == m_display_mode) {
+//		hb_mem_free_buf(m_draw_buffers.buffer.fd[0]);
+//		EGLPreviewWindow& window = EGLPreviewWindow::getInstance();
+//		window.close();
+//	}
+//
+//	return ret;
 
-	return ret;
+// to do display准备好后再开启
+	return 0;
 }
 
 inline int clamp(int value, int minVal, int maxVal) {
@@ -288,84 +294,90 @@ FrameRateCounter fpsCounter;
 
 n2d_error_t create_n2d_buffer_from_phyaddr_continuous_memory(n2d_buffer_t *n2d_buffer,
     n2d_buffer_format_t format, n2d_uintptr_t phys_addr, int width, int height) {
+//
+//    n2d_error_t error = N2D_SUCCESS;
+//
+//    memset(n2d_buffer, 0, sizeof(n2d_buffer_t));
+//    n2d_buffer->width = width;
+//    n2d_buffer->height = height;
+//
+//    n2d_buffer->format = format;
+//    n2d_buffer->orientation = N2D_0;
+//    n2d_buffer->srcType = N2D_SOURCE_DEFAULT;
+//    n2d_buffer->tiling = N2D_LINEAR;
+//    n2d_buffer->cacheMode = N2D_CACHE_128;
+//
+//    n2d_uintptr_t n2d_buffer_handle;
+//    n2d_user_memory_desc_t n2d_buffer_mem_desc;
+//    n2d_buffer_mem_desc.flag = N2D_WRAP_FROM_USERMEMORY;
+//    n2d_buffer_mem_desc.logical = 0; //
+//    n2d_buffer_mem_desc.physical = phys_addr;
+//
+//    if (format == N2D_RGBA8888) {
+//        // ARGB8888
+//        n2d_buffer->alignedw = gcmALIGN(n2d_buffer->width, 4);  // 宽度对齐到4字节
+//        n2d_buffer->alignedh = n2d_buffer->height;
+//        n2d_buffer->stride = gcmALIGN(n2d_buffer->alignedw * 4, 4);  // 步幅对齐到4字节
+//
+//        // ARGB8888
+//        n2d_buffer_mem_desc.size = n2d_buffer->stride * n2d_buffer->alignedh;
+//
+//    } else if (format == N2D_NV12) {
+//        // NV12
+//        n2d_buffer->alignedw = gcmALIGN(n2d_buffer->width, 64);  // 宽度对齐到64字节
+//        n2d_buffer->alignedh = n2d_buffer->height;
+//
+//        // NV12
+//        float nv12_bpp = gcmALIGN(16, 8) * 1.0f / 8;
+//        n2d_buffer->stride = gcmALIGN(gcmFLOAT2INT(n2d_buffer->alignedw * nv12_bpp), 64);  // 步幅对齐到64字节
+//
+//        // NV12
+//        n2d_buffer_mem_desc.size = n2d_buffer->stride * n2d_buffer->alignedh * 3 / 2;
+//    } else {
+//
+//        return N2D_INVALID_ARGUMENT;
+//    }
+//
+//
+//
+//    error = n2d_wrap(&n2d_buffer_mem_desc, &n2d_buffer_handle);
+//    if (N2D_IS_ERROR(error)) {
+//        return error;
+//    }
+//
+//    n2d_buffer->handle = n2d_buffer_handle;
+//    error = n2d_map(n2d_buffer);
+//    if (N2D_IS_ERROR(error)) {
+//        return error;
+//    }
+//
+//    return N2D_SUCCESS;
 
-    n2d_error_t error = N2D_SUCCESS;
-
-    memset(n2d_buffer, 0, sizeof(n2d_buffer_t));
-    n2d_buffer->width = width;
-    n2d_buffer->height = height;
-
-    n2d_buffer->format = format;
-    n2d_buffer->orientation = N2D_0;
-    n2d_buffer->srcType = N2D_SOURCE_DEFAULT;
-    n2d_buffer->tiling = N2D_LINEAR;
-    n2d_buffer->cacheMode = N2D_CACHE_128;
-
-    n2d_uintptr_t n2d_buffer_handle;
-    n2d_user_memory_desc_t n2d_buffer_mem_desc;
-    n2d_buffer_mem_desc.flag = N2D_WRAP_FROM_USERMEMORY;
-    n2d_buffer_mem_desc.logical = 0; //
-    n2d_buffer_mem_desc.physical = phys_addr;
-
-    if (format == N2D_RGBA8888) {
-        // ARGB8888
-        n2d_buffer->alignedw = gcmALIGN(n2d_buffer->width, 4);  // 宽度对齐到4字节
-        n2d_buffer->alignedh = n2d_buffer->height;
-        n2d_buffer->stride = gcmALIGN(n2d_buffer->alignedw * 4, 4);  // 步幅对齐到4字节
-
-        // ARGB8888
-        n2d_buffer_mem_desc.size = n2d_buffer->stride * n2d_buffer->alignedh;
-
-    } else if (format == N2D_NV12) {
-        // NV12
-        n2d_buffer->alignedw = gcmALIGN(n2d_buffer->width, 64);  // 宽度对齐到64字节
-        n2d_buffer->alignedh = n2d_buffer->height;
-
-        // NV12
-        float nv12_bpp = gcmALIGN(16, 8) * 1.0f / 8;
-        n2d_buffer->stride = gcmALIGN(gcmFLOAT2INT(n2d_buffer->alignedw * nv12_bpp), 64);  // 步幅对齐到64字节
-
-        // NV12
-        n2d_buffer_mem_desc.size = n2d_buffer->stride * n2d_buffer->alignedh * 3 / 2;
-    } else {
-
-        return N2D_INVALID_ARGUMENT;
-    }
-
-
-
-    error = n2d_wrap(&n2d_buffer_mem_desc, &n2d_buffer_handle);
-    if (N2D_IS_ERROR(error)) {
-        return error;
-    }
-
-    n2d_buffer->handle = n2d_buffer_handle;
-    error = n2d_map(n2d_buffer);
-    if (N2D_IS_ERROR(error)) {
-        return error;
-    }
-
-    return N2D_SUCCESS;
+// to do display准备好后再开启
+	return N2D_SUCCESS;
 }
 
 n2d_error_t VPPDisplay::do_overlay(n2d_buffer_t *src0_nv12,n2d_buffer_t *scr1_ar24,n2d_buffer_t *dst0_nv12){
-	n2d_error_t error	       = N2D_SUCCESS;
-	n2d_rectangle_t rect;
-	rect.x = 0; //top left
-	rect.y = 0;
-	rect.width = scr1_ar24->width;
-	rect.height = scr1_ar24->height;
+//	n2d_error_t error	       = N2D_SUCCESS;
+//	n2d_rectangle_t rect;
+//	rect.x = 0; //top left
+//	rect.y = 0;
+//	rect.width = scr1_ar24->width;
+//	rect.height = scr1_ar24->height;
+//
+//	N2D_ON_ERROR(n2d_blit(&rgba_buffer, N2D_NULL, src0_nv12, N2D_NULL, N2D_BLEND_NONE));
+//	N2D_ON_ERROR(n2d_blit(&rgba_buffer, &rect , scr1_ar24, N2D_NULL, N2D_BLEND_SRC_OVER));
+//	N2D_ON_ERROR(n2d_blit(dst0_nv12, &rect , &rgba_buffer, N2D_NULL, N2D_BLEND_NONE));
+//	N2D_ON_ERROR(n2d_commit());
+//	return error;
+//on_error:
+//	n2d_free(src0_nv12);
+//	n2d_free(scr1_ar24);
+//	n2d_free(dst0_nv12);
+//	return error;
 
-	N2D_ON_ERROR(n2d_blit(&rgba_buffer, N2D_NULL, src0_nv12, N2D_NULL, N2D_BLEND_NONE));
-	N2D_ON_ERROR(n2d_blit(&rgba_buffer, &rect , scr1_ar24, N2D_NULL, N2D_BLEND_SRC_OVER));
-	N2D_ON_ERROR(n2d_blit(dst0_nv12, &rect , &rgba_buffer, N2D_NULL, N2D_BLEND_NONE));
-	N2D_ON_ERROR(n2d_commit());
-	return error;
-on_error:
-	n2d_free(src0_nv12);
-	n2d_free(scr1_ar24);
-	n2d_free(dst0_nv12);
-	return error;
+// to do display准备好后再开启
+	return N2D_SUCCESS;
 }
 
 
@@ -406,86 +418,89 @@ void save_image_to_file(const char* file_name, void* buffer, size_t size) {
 }
 
 int32_t VPPDisplay::SetImageFrame(ImageFrame *frame) {
-	int32_t ret = 0;
+//	int32_t ret = 0;
+//
+//	if (2 == m_display_mode) {
+//		fpsCounter.update();
+//		return 0;
+//	}
+//
+//	//Must ensure that the n2d_open and the final compositing operations are executed on the same thread.
+//	if(isGPUInit == false){
+//		ret = n2d_open();
+//		if(ret)
+//		{
+//			LOGE_print("n2d_open fail,ret:%d\n",ret);
+//		}
+//
+//		for (size_t i = 0; i < 3; i++)
+//		{
+//			ret = convertN2DBuffer(&primary_mapped_gpu_buffer[i],&m_vo_buffers[i].buffer, N2D_NV12);
+//			if(ret){
+//				LOGE_print("convertN2DBuffer(NV12) fail,ret:%d\n",ret);
+//			}
+//		}
+//
+//		ret = convertN2DBuffer(&overlay_mapped_gpu_buffer[0],&m_draw_buffers.buffer, N2D_RGBA8888);
+//		if(ret){
+//			LOGE_print("convertN2DBuffer(AR24) fail,ret:%d\n",ret);
+//		}
+//
+//		ret = convertN2DBuffer(&final_mapped_gpu_buffer[0],&m_final_buffers[0].buffer, N2D_NV12);
+//		if(ret){
+//			LOGE_print("convertN2DBuffer(NV12 final) fail,ret:%d\n",ret);
+//		}
+//		ret = convertN2DBuffer(&final_mapped_gpu_buffer[1],&m_final_buffers[1].buffer, N2D_NV12);
+//		if(ret){
+//			LOGE_print("convertN2DBuffer(NV12 final) fail,ret:%d\n",ret);
+//		}
+//		memset(&rgba_buffer,0,sizeof(n2d_buffer_t));
+//		n2d_util_allocate_buffer(
+//        m_vo_buffers[0].buffer.width,
+//        m_vo_buffers[0].buffer.height,
+//        N2D_RGBA8888,
+//        N2D_0,
+//        N2D_LINEAR,
+//        N2D_TSC_DISABLE,
+//        &rgba_buffer);
+//
+//		LOGI_print("N2D init done!\n");
+//		isGPUInit = true;
+//	}
+//
+//	hbn_vnode_image_t& currentBuffer = m_vo_buffers[currentBufferIndex];
+//	currentBufferIndex = (currentBufferIndex + 1) % NUM_BUFFERS;
+//
+//	for (int i = 0; i < frame->plane_count; ++i) {
+//		memcpy(currentBuffer.buffer.virt_addr[i], frame->data[i], frame->data_size[i]);
+//	}
+//
+//	if (0 == m_display_mode) {
+//		// let's do overlay
+//		do_overlay(&primary_mapped_gpu_buffer[currentBufferIndex], &overlay_mapped_gpu_buffer[0], &final_mapped_gpu_buffer[currentRenderBufferIndex]);
+//		ret = vp_display_set_frame(&m_drm_ctx, 0, &m_final_buffers[currentRenderBufferIndex]);
+//		currentRenderBufferIndex = (currentRenderBufferIndex + 1) % 2;
+//
+//	} else if (1 == m_display_mode) {
+//		std::vector<uint8_t> rgbaData(frame->width * frame->height * 4);
+//
+//		// Convert NV12 to RGBA in the main thread (producer)
+//		NV12ToRGBA(currentBuffer.buffer.virt_addr[0], rgbaData.data(), frame->width, frame->height);
+//
+//		// Lock and push the converted RGBA data into the queue
+//		{
+//			std::lock_guard<std::mutex> lock(queueMutex);
+//			if (rgbaQueue.size() < MAX_QUEUE_SIZE) {
+//				rgbaQueue.push(std::move(rgbaData));
+//			}
+//		}
+//		queueCV.notify_one();  // Notify the consumer thread to process the RGBA data
+//	}
+//err:
+//	return ret;
 
-	if (2 == m_display_mode) {
-		fpsCounter.update();
-		return 0;
-	}
-
-	//Must ensure that the n2d_open and the final compositing operations are executed on the same thread.
-	if(isGPUInit == false){
-		ret = n2d_open();
-		if(ret)
-		{
-			LOGE_print("n2d_open fail,ret:%d\n",ret);
-		}
-
-		for (size_t i = 0; i < 3; i++)
-		{
-			ret = convertN2DBuffer(&primary_mapped_gpu_buffer[i],&m_vo_buffers[i].buffer, N2D_NV12);
-			if(ret){
-				LOGE_print("convertN2DBuffer(NV12) fail,ret:%d\n",ret);
-			}
-		}
-
-		ret = convertN2DBuffer(&overlay_mapped_gpu_buffer[0],&m_draw_buffers.buffer, N2D_RGBA8888);
-		if(ret){
-			LOGE_print("convertN2DBuffer(AR24) fail,ret:%d\n",ret);
-		}
-
-		ret = convertN2DBuffer(&final_mapped_gpu_buffer[0],&m_final_buffers[0].buffer, N2D_NV12);
-		if(ret){
-			LOGE_print("convertN2DBuffer(NV12 final) fail,ret:%d\n",ret);
-		}
-		ret = convertN2DBuffer(&final_mapped_gpu_buffer[1],&m_final_buffers[1].buffer, N2D_NV12);
-		if(ret){
-			LOGE_print("convertN2DBuffer(NV12 final) fail,ret:%d\n",ret);
-		}
-		memset(&rgba_buffer,0,sizeof(n2d_buffer_t));
-		n2d_util_allocate_buffer(
-        m_vo_buffers[0].buffer.width,
-        m_vo_buffers[0].buffer.height,
-        N2D_RGBA8888,
-        N2D_0,
-        N2D_LINEAR,
-        N2D_TSC_DISABLE,
-        &rgba_buffer);
-
-		LOGI_print("N2D init done!\n");
-		isGPUInit = true;
-	}
-
-	hbn_vnode_image_t& currentBuffer = m_vo_buffers[currentBufferIndex];
-	currentBufferIndex = (currentBufferIndex + 1) % NUM_BUFFERS;
-
-	for (int i = 0; i < frame->plane_count; ++i) {
-		memcpy(currentBuffer.buffer.virt_addr[i], frame->data[i], frame->data_size[i]);
-	}
-
-	if (0 == m_display_mode) {
-		// let's do overlay
-		do_overlay(&primary_mapped_gpu_buffer[currentBufferIndex], &overlay_mapped_gpu_buffer[0], &final_mapped_gpu_buffer[currentRenderBufferIndex]);
-		ret = vp_display_set_frame(&m_drm_ctx, 0, &m_final_buffers[currentRenderBufferIndex]);
-		currentRenderBufferIndex = (currentRenderBufferIndex + 1) % 2;
-
-	} else if (1 == m_display_mode) {
-		std::vector<uint8_t> rgbaData(frame->width * frame->height * 4);
-
-		// Convert NV12 to RGBA in the main thread (producer)
-		NV12ToRGBA(currentBuffer.buffer.virt_addr[0], rgbaData.data(), frame->width, frame->height);
-
-		// Lock and push the converted RGBA data into the queue
-		{
-			std::lock_guard<std::mutex> lock(queueMutex);
-			if (rgbaQueue.size() < MAX_QUEUE_SIZE) {
-				rgbaQueue.push(std::move(rgbaData));
-			}
-		}
-		queueCV.notify_one();  // Notify the consumer thread to process the RGBA data
-	}
-err:
-	return ret;
+// to do display准备好后再开启
+	return 0;
 }
 
 int32_t VPPDisplay::GetImageFrame(ImageFrame *frame, int32_t chn, const int32_t timeout)
@@ -502,56 +517,59 @@ void VPPDisplay::ReturnImageFrame(ImageFrame *frame, int32_t chn)
 int32_t VPPDisplay::SetGraphRect(int32_t x0, int32_t y0, int32_t x1, int32_t y1,
 	int32_t flush, uint32_t color, int32_t line_width)
 {
-	int32_t ret = 0;
+//	int32_t ret = 0;
+//
+//	if (0 == m_display_mode) {
+//		x0 = (x0 < (m_width - line_width)) ? ((x0 >= 0) ? x0 : 0) : (m_width - line_width);
+//		y0 = (y0 < (m_height - line_width)) ? ((y0 >= 0) ? y0 : 0) : (m_height - line_width);
+//		x1 = (x1 < (m_width - line_width)) ? ((x1 >= 0) ? x1 : 0) : (m_width - line_width);
+//		y1 = (y1 < (m_height - line_width)) ? ((y1 >= 0) ? y1 : 0) : (m_height - line_width);
+//
+//		if (flush) {
+//			//ret = vp_display_set_frame(&m_drm_ctx, 1, &m_draw_buffers);
+//			memset(m_draw_buffers.buffer.virt_addr[0], 0, m_width * m_height * DISPLAY_ARGB_BYTES);
+//		}
+//
+//		vp_display_draw_rect(m_draw_buffers.buffer.virt_addr[0],
+//			x0, y0, x1, y1, color, 0, m_width, m_height, line_width);
+//	} else if (1 == m_display_mode) {
+//		return 0;
+//	}
+//
+//	return ret;
 
-	if (0 == m_display_mode) {
-		x0 = (x0 < (m_width - line_width)) ? ((x0 >= 0) ? x0 : 0) : (m_width - line_width);
-		y0 = (y0 < (m_height - line_width)) ? ((y0 >= 0) ? y0 : 0) : (m_height - line_width);
-		x1 = (x1 < (m_width - line_width)) ? ((x1 >= 0) ? x1 : 0) : (m_width - line_width);
-		y1 = (y1 < (m_height - line_width)) ? ((y1 >= 0) ? y1 : 0) : (m_height - line_width);
-
-		if (flush) {
-			//ret = vp_display_set_frame(&m_drm_ctx, 1, &m_draw_buffers);
-			memset(m_draw_buffers.buffer.virt_addr[0], 0, m_width * m_height * DISPLAY_ARGB_BYTES);
-		}
-
-		vp_display_draw_rect(m_draw_buffers.buffer.virt_addr[0],
-			x0, y0, x1, y1, color, 0, m_width, m_height, line_width);
-	} else if (1 == m_display_mode) {
-		return 0;
-	}
-
-	return ret;
+// to do display准备好后再开启
+	return 0;
 }
 
 int32_t VPPDisplay::SetGraphWord(int32_t x, int32_t y, char *str,
 	int32_t flush, uint32_t color, int32_t line_width)
 {
-	int32_t ret = 0;
-	int32_t len;
-	if (str == NULL) {
-		LOGE_print("string was NULL\n");
-		return -1;
-	}
+//	int32_t ret = 0;
+//	int32_t len;
+//	if (str == NULL) {
+//		LOGE_print("string was NULL\n");
+//		return -1;
+//	}
+//
+//	if (0 == m_display_mode) {
+//		if ((x < 0) || (x > m_width) || (y < 0) || (y > m_height) ||
+//			((line_width * FONT_ONE_ENCODE_WIDTH + y) > m_height)) {
+//			LOGE_print("parameter error, coordinate (%d, %d) string:%s line_width:%d\n",
+//				x, y, str, line_width);
+//			return -1;
+//		}
+//		if (((int)strlen(str) * line_width * FONT_ONE_ENCODE_WIDTH + x) > m_width) {
+//			len = (m_width - x) / (line_width * FONT_ONE_ENCODE_WIDTH);
+//			str[len] = '\0';
+//		}
+//		ret = vp_display_draw_word(m_draw_buffers.buffer.virt_addr[0], x, y, str, m_width, color, line_width);
+//	} else if (1 == m_display_mode) {
+//
+//		return 0;
+//	}
 
-	if (0 == m_display_mode) {
-		if ((x < 0) || (x > m_width) || (y < 0) || (y > m_height) ||
-			((line_width * FONT_ONE_ENCODE_WIDTH + y) > m_height)) {
-			LOGE_print("parameter error, coordinate (%d, %d) string:%s line_width:%d\n",
-				x, y, str, line_width);
-			return -1;
-		}
-		if (((int)strlen(str) * line_width * FONT_ONE_ENCODE_WIDTH + x) > m_width) {
-			len = (m_width - x) / (line_width * FONT_ONE_ENCODE_WIDTH);
-			str[len] = '\0';
-		}
-		ret = vp_display_draw_word(m_draw_buffers.buffer.virt_addr[0], x, y, str, m_width, color, line_width);
-	} else if (1 == m_display_mode) {
-
-		return 0;
-	}
-
-	return ret;
+	return 0;
 }
 
 void VPPDisplay::startProcessingThread() {

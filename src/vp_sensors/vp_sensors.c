@@ -15,41 +15,41 @@
 
 #include <stdbool.h>
 
-extern vp_sensor_config_t sc1330t_linear_1280x960_raw10_30fps_1lane;
-extern vp_sensor_config_t irs2875_linear_208x1413_raw12_15fps_2lane;
-extern vp_sensor_config_t sc230ai_linear_1920x1080_raw10_10fps_1lane;
+//extern vp_sensor_config_t sc1330t_linear_1280x960_raw10_30fps_1lane;
+//extern vp_sensor_config_t irs2875_linear_208x1413_raw12_15fps_2lane;
+//extern vp_sensor_config_t sc230ai_linear_1920x1080_raw10_10fps_1lane;
 extern vp_sensor_config_t sc230ai_linear_1920x1080_raw10_30fps_1lane;
-extern vp_sensor_config_t sc132gs_linear_1088x1280_raw10_30fps_1lane;
-extern vp_sensor_config_t sc035hgs_linear_640x480_raw10_30fps_1lane;
-extern vp_sensor_config_t ov5640_linear_1920x1080_raw10_30fps_2lane;
-extern vp_sensor_config_t f37_linear_1920x1080_raw10_30fps_1lane;
-extern vp_sensor_config_t imx415_linear_3480x2160_raw10_30fps_4lane;
-extern vp_sensor_config_t sc202cs_linear_1600x1200_raw10_30fps_1lane;
-extern vp_sensor_config_t irs2381c_linear_224x1903_raw12_5fps_2lane;
-extern vp_sensor_config_t imx219_linear_1920x1080_raw10_30fps_2lane;
-extern vp_sensor_config_t imx219_linear_3264x2464_raw10_15fps_2lane;
-extern vp_sensor_config_t ov5647_linear_1920x1080_raw10_30fps_2lane;
-extern vp_sensor_config_t imx477_linear_1920x1080_raw12_50fps_2lane;
-extern vp_sensor_config_t sc035hgs_linear_640x480_raw10_30fps_2lane_vc0;
-extern vp_sensor_config_t sc035hgs_linear_640x480_raw10_30fps_2lane_vc1;
+//extern vp_sensor_config_t sc132gs_linear_1088x1280_raw10_30fps_1lane;
+//extern vp_sensor_config_t sc035hgs_linear_640x480_raw10_30fps_1lane;
+//extern vp_sensor_config_t ov5640_linear_1920x1080_raw10_30fps_2lane;
+//extern vp_sensor_config_t f37_linear_1920x1080_raw10_30fps_1lane;
+//extern vp_sensor_config_t imx415_linear_3480x2160_raw10_30fps_4lane;
+//extern vp_sensor_config_t sc202cs_linear_1600x1200_raw10_30fps_1lane;
+//extern vp_sensor_config_t irs2381c_linear_224x1903_raw12_5fps_2lane;
+//extern vp_sensor_config_t imx219_linear_1920x1080_raw10_30fps_2lane;
+//extern vp_sensor_config_t imx219_linear_3264x2464_raw10_15fps_2lane;
+//extern vp_sensor_config_t ov5647_linear_1920x1080_raw10_30fps_2lane;
+//extern vp_sensor_config_t imx477_linear_1920x1080_raw12_50fps_2lane;
+//extern vp_sensor_config_t sc035hgs_linear_640x480_raw10_30fps_2lane_vc0;
+//extern vp_sensor_config_t sc035hgs_linear_640x480_raw10_30fps_2lane_vc1;
 
 vp_sensor_config_t *vp_sensor_config_list[] = {
-	&sc1330t_linear_1280x960_raw10_30fps_1lane,
-	&irs2875_linear_208x1413_raw12_15fps_2lane,
+//	&sc1330t_linear_1280x960_raw10_30fps_1lane,
+//	&irs2875_linear_208x1413_raw12_15fps_2lane,
 	&sc230ai_linear_1920x1080_raw10_30fps_1lane,
-	&sc132gs_linear_1088x1280_raw10_30fps_1lane,
-	&sc035hgs_linear_640x480_raw10_30fps_1lane,
-	&ov5640_linear_1920x1080_raw10_30fps_2lane,
-	&f37_linear_1920x1080_raw10_30fps_1lane,
-	&imx415_linear_3480x2160_raw10_30fps_4lane,
-	&sc202cs_linear_1600x1200_raw10_30fps_1lane,
-	&irs2381c_linear_224x1903_raw12_5fps_2lane,
-	&imx219_linear_1920x1080_raw10_30fps_2lane,
-	&imx219_linear_3264x2464_raw10_15fps_2lane,
-	&ov5647_linear_1920x1080_raw10_30fps_2lane,
-	&imx477_linear_1920x1080_raw12_50fps_2lane,
-	&sc035hgs_linear_640x480_raw10_30fps_2lane_vc0,
-	&sc035hgs_linear_640x480_raw10_30fps_2lane_vc1,
+//	&sc132gs_linear_1088x1280_raw10_30fps_1lane,
+//	&sc035hgs_linear_640x480_raw10_30fps_1lane,
+//	&ov5640_linear_1920x1080_raw10_30fps_2lane,
+//	&f37_linear_1920x1080_raw10_30fps_1lane,
+//	&imx415_linear_3480x2160_raw10_30fps_4lane,
+//	&sc202cs_linear_1600x1200_raw10_30fps_1lane,
+//	&irs2381c_linear_224x1903_raw12_5fps_2lane,
+//	&imx219_linear_1920x1080_raw10_30fps_2lane,
+//	&imx219_linear_3264x2464_raw10_15fps_2lane,
+//	&ov5647_linear_1920x1080_raw10_30fps_2lane,
+//	&imx477_linear_1920x1080_raw12_50fps_2lane,
+//	&sc035hgs_linear_640x480_raw10_30fps_2lane_vc0,
+//	&sc035hgs_linear_640x480_raw10_30fps_2lane_vc1,
 };
 
 uint32_t vp_get_sensors_list_number() {
@@ -403,7 +403,7 @@ static int32_t check_sensor_reg_value(vcon_propertie_t vcon_props,
 					// Update mipi rx phy
 					// 修正配置中的 sensor 使用的 mipi rx phy
 					// 此处的修改并不一定是最终修改，在vpp 的impl 的 param 设置中会根据具体情况再次修改
-					sensor_config->vin_node_attr->cim_attr.mipi_rx = vcon_props.rx_phy[1];
+					sensor_config->vin_attr->vin_node_attr.cim_attr.mipi_rx = vcon_props.rx_phy[1];
 				return 0;
 			} else {
 				printf("WARN: Sensor Name: %s, Expected Chip ID: 0x%02X, Actual Chip ID Read: 0x%02X\n",
@@ -571,296 +571,301 @@ static int32_t vp_sensor_mipi_host_mclk_is_not_configed(int csi_index){
 
 void vp_sensor_detect_structed(csi_list_info_t *csi_list_info)
 {
-	struct vcon_properties vcon_props_array[VP_MAX_VCON_NUM];
-	struct mipi_properties mipi_props_array[VP_MAX_VCON_NUM];
-	csi_list_info->valid_count = 0;
-	csi_list_info->max_count = VP_MAX_VCON_NUM;
-	int is_need_used_csi[VP_MAX_VCON_NUM] = {true, true, true, true};
-	should_used_csi(is_need_used_csi);
-	// Iterate over vcon@0 - 3
-	for (int i = 0; i < VP_MAX_VCON_NUM; ++i) {
-		csi_info_t csi_info_tmp = {.index = i, .is_valid = 0};
-		read_vcon_info_from_device_tree(i, &vcon_props_array[i]);
-		read_mipi_info_from_device_tree(i, &mipi_props_array[i]);
-		if (is_need_used_csi[i] == false) {
-			csi_list_info->csi_info[i] = csi_info_tmp;
-			continue;
-		}
-
-		int mclk_is_not_configed = 0;
-		printf("\n");
-		printf("Searching camera sensor on device: %s ", vcon_props_array[i].device_path);
-		printf("i2c bus: %d ", vcon_props_array[i].bus);
-		printf("mipi rx phy: %d\n", vcon_props_array[i].rx_phy[1]);
-		if(strlen(mipi_props_array[i].pinctrl_names) == 0){
-			mclk_is_not_configed = 1;
-			printf("mipi mclk is not configed.\n");
-		}else{
-			printf("mipi mclk is configed.\n");
-		}
-		csi_info_tmp.mclk_is_not_configed = mclk_is_not_configed;
-
-		memset(csi_info_tmp.sensor_config_list, 0, sizeof(csi_info_tmp.sensor_config_list));
-		if (vcon_props_array[i].status[0] == 'o') {
-			if(!mclk_is_not_configed){
-				/* enable mclk */
-				write_mipi_host_freq(i, 24000000);
-				enable_mipi_host_clock(i, 1);
-			}
-
-			for (int j = 0; j < vp_get_sensors_list_number(); j++) {
-				for (int k = 0; k < 8; ++k) {
-					if (vcon_props_array[i].gpio_oth[k] != 0) {
-						if ((vp_sensor_config_list[j]->camera_config->gpio_enable_bit & (1 << k)) != 0) {
-							enable_sensor_pin(vcon_props_array[i].gpio_oth[k],
-								(1 - vp_sensor_config_list[j]->camera_config->gpio_level_bit));
-						}
-					}
-				}
-
-				int ret = check_sensor_reg_value(vcon_props_array[i], vp_sensor_config_list[j]);
-				if (ret == 0) {
-
-					printf("INFO: Support sensor name:%s on mipi rx csi %d, "
-							"i2c addr 0x%x, config_file:%s\n",
-						vp_sensor_config_list[j]->sensor_name,
-						vcon_props_array[i].rx_phy[1],
-						vp_sensor_config_list[j]->camera_config->addr,
-						vp_sensor_config_list[j]->config_file);
-
-					csi_info_tmp.index = i;
-					csi_info_tmp.is_valid = 1;
-
-
-					if (strlen(csi_info_tmp.sensor_config_list) > 1) {
-						strcat(csi_info_tmp.sensor_config_list, "/");
-					}
-					strcat(csi_info_tmp.sensor_config_list, vp_sensor_config_list[j]->sensor_name);
-				}
-			}
-			csi_list_info->csi_info[i] = csi_info_tmp;
-			if(csi_info_tmp.is_valid){
-				csi_list_info->valid_count++;
-			}
-		}
-	}
+	//struct vcon_properties vcon_props_array[VP_MAX_VCON_NUM];
+	//struct mipi_properties mipi_props_array[VP_MAX_VCON_NUM];
+	//csi_list_info->valid_count = 0;
+	//csi_list_info->max_count = VP_MAX_VCON_NUM;
+	//int is_need_used_csi[VP_MAX_VCON_NUM] = {true, true, true, true};
+	//should_used_csi(is_need_used_csi);
+	//// Iterate over vcon@0 - 3
+	//for (int i = 0; i < VP_MAX_VCON_NUM; ++i) {
+	//	csi_info_t csi_info_tmp = {.index = i, .is_valid = 0};
+	//	read_vcon_info_from_device_tree(i, &vcon_props_array[i]);
+	//	read_mipi_info_from_device_tree(i, &mipi_props_array[i]);
+	//	if (is_need_used_csi[i] == false) {
+	//		csi_list_info->csi_info[i] = csi_info_tmp;
+	//		continue;
+	//	}
+//
+	//	int mclk_is_not_configed = 0;
+	//	printf("\n");
+	//	printf("Searching camera sensor on device: %s ", vcon_props_array[i].device_path);
+	//	printf("i2c bus: %d ", vcon_props_array[i].bus);
+	//	printf("mipi rx phy: %d\n", vcon_props_array[i].rx_phy[1]);
+	//	if(strlen(mipi_props_array[i].pinctrl_names) == 0){
+	//		mclk_is_not_configed = 1;
+	//		printf("mipi mclk is not configed.\n");
+	//	}else{
+	//		printf("mipi mclk is configed.\n");
+	//	}
+	//	csi_info_tmp.mclk_is_not_configed = mclk_is_not_configed;
+//
+	//	memset(csi_info_tmp.sensor_config_list, 0, sizeof(csi_info_tmp.sensor_config_list));
+	//	if (vcon_props_array[i].status[0] == 'o') {
+	//		if(!mclk_is_not_configed){
+	//			/* enable mclk */
+	//			write_mipi_host_freq(i, 24000000);
+	//			enable_mipi_host_clock(i, 1);
+	//		}
+//
+	//		for (int j = 0; j < vp_get_sensors_list_number(); j++) {
+	//			for (int k = 0; k < 8; ++k) {
+	//				if (vcon_props_array[i].gpio_oth[k] != 0) {
+	//					if ((vp_sensor_config_list[j]->camera_config->gpio_enable_bit & (1 << k)) != 0) {
+	//						enable_sensor_pin(vcon_props_array[i].gpio_oth[k],
+	//							(1 - vp_sensor_config_list[j]->camera_config->gpio_level_bit));
+	//					}
+	//				}
+	//			}
+//
+	//			int ret = check_sensor_reg_value(vcon_props_array[i], vp_sensor_config_list[j]);
+	//			if (ret == 0) {
+//
+	//				printf("INFO: Support sensor name:%s on mipi rx csi %d, "
+	//						"i2c addr 0x%x, config_file:%s\n",
+	//					vp_sensor_config_list[j]->sensor_name,
+	//					vcon_props_array[i].rx_phy[1],
+	//					vp_sensor_config_list[j]->camera_config->addr,
+	//					vp_sensor_config_list[j]->config_file);
+//
+	//				csi_info_tmp.index = i;
+	//				csi_info_tmp.is_valid = 1;
+//
+//
+	//				if (strlen(csi_info_tmp.sensor_config_list) > 1) {
+	//					strcat(csi_info_tmp.sensor_config_list, "/");
+	//				}
+	//				strcat(csi_info_tmp.sensor_config_list, vp_sensor_config_list[j]->sensor_name);
+	//			}
+	//		}
+	//		csi_list_info->csi_info[i] = csi_info_tmp;
+	//		if(csi_info_tmp.is_valid){
+	//			csi_list_info->valid_count++;
+	//		}
+	//	}
+	//}
 }
 
 int32_t vp_sensor_multi_fixed_mipi_host(vp_sensor_config_t *sensor_config, int used_mipi_host, vp_csi_config_t* csi_config)
 {
-	int32_t ret = -1, j = 0;
-	static int32_t i = 0;
-	uint32_t frequency = 24000000;
-	int is_need_used_csi[VP_MAX_VCON_NUM] = {true, true, true, true};
-	should_used_csi(is_need_used_csi);
-
-	struct vcon_properties vcon_props_array[VP_MAX_VCON_NUM];
-
-	// Iterate over vcon@0 - 3
-	for (i = 0; i < VP_MAX_VCON_NUM; ++i) {
-		if (is_need_used_csi[i] == false) {
-			continue;
-		}
-		// 跳过使用使用的mipi csi控制器，支持同时接入相同的摄像头
-		if (used_mipi_host & (1 << i))
-			continue;
-
-		if (check_mipi_host_status(i) == 0)
-			continue;
-
-		int mclk_is_not_configed = vp_sensor_mipi_host_mclk_is_not_configed(i);
-		read_vcon_info_from_device_tree(i, &vcon_props_array[i]);
-
-		printf("Searching camera sensor on device: %s ", vcon_props_array[i].device_path);
-		printf("i2c bus: %d ", vcon_props_array[i].bus);
-		printf("mipi rx phy: %d\n", vcon_props_array[i].rx_phy[1]);
-
-		// 如果该vcon使能了，检测该vcon上是否有连接 sensor
-		if (vcon_props_array[i].status[0] == 'o') { // okay
-			// 检测该vcon上连接的 sensor
-			/*enable gpio_oth, enable camera sensor gpio, maybe pwd/reset gpio */
-			for (j = 0; j < 8; ++j) {
-				if (vcon_props_array[i].gpio_oth[j] != 0) {
-					if (sensor_config->camera_config->gpio_enable_bit != 0) {
-						// gpio_level should be from sensor config and sensor spec
-						enable_sensor_pin(vcon_props_array[i].gpio_oth[j],
-							(1 - sensor_config->camera_config->gpio_level_bit));
-					}
-				}
-			}
-
-			if(!mclk_is_not_configed){
-				/* enable mclk */
-				write_mipi_host_freq(i, frequency);
-				enable_mipi_host_clock(i, 1);
-			}
-
-			// 从指定的vcon关联的i2c bus上读取 vp_sensor_config_list 中指定的 chip_id_reg 对应的寄存器值
-			ret = check_sensor_reg_value(vcon_props_array[i], sensor_config);
-			if (ret == 0) {
-				csi_config->index = i;
-				csi_config->mclk_is_not_configed = mclk_is_not_configed;
-				// 检测到 sensor，保存 sensor 信息
-				printf("INFO: Found sensor_name:%s on mipi rx csi %d, i2c addr 0x%x, config_file:%s\n",
-					sensor_config->sensor_name, vcon_props_array[i].rx_phy[1],
-					sensor_config->camera_config->addr, sensor_config->config_file);
-				break;
-			}
-		}
-	}
-
-	return ret;
+	//int32_t ret = -1, j = 0;
+	//static int32_t i = 0;
+	//uint32_t frequency = 24000000;
+	//int is_need_used_csi[VP_MAX_VCON_NUM] = {true, true, true, true};
+	//should_used_csi(is_need_used_csi);
+//
+	//struct vcon_properties vcon_props_array[VP_MAX_VCON_NUM];
+//
+	//// Iterate over vcon@0 - 3
+	//for (i = 0; i < VP_MAX_VCON_NUM; ++i) {
+	//	if (is_need_used_csi[i] == false) {
+	//		continue;
+	//	}
+	//	// 跳过使用使用的mipi csi控制器，支持同时接入相同的摄像头
+	//	if (used_mipi_host & (1 << i))
+	//		continue;
+//
+	//	if (check_mipi_host_status(i) == 0)
+	//		continue;
+//
+	//	int mclk_is_not_configed = vp_sensor_mipi_host_mclk_is_not_configed(i);
+	//	read_vcon_info_from_device_tree(i, &vcon_props_array[i]);
+//
+	//	printf("Searching camera sensor on device: %s ", vcon_props_array[i].device_path);
+	//	printf("i2c bus: %d ", vcon_props_array[i].bus);
+	//	printf("mipi rx phy: %d\n", vcon_props_array[i].rx_phy[1]);
+//
+	//	// 如果该vcon使能了，检测该vcon上是否有连接 sensor
+	//	if (vcon_props_array[i].status[0] == 'o') { // okay
+	//		// 检测该vcon上连接的 sensor
+	//		/*enable gpio_oth, enable camera sensor gpio, maybe pwd/reset gpio */
+	//		for (j = 0; j < 8; ++j) {
+	//			if (vcon_props_array[i].gpio_oth[j] != 0) {
+	//				if (sensor_config->camera_config->gpio_enable_bit != 0) {
+	//					// gpio_level should be from sensor config and sensor spec
+	//					enable_sensor_pin(vcon_props_array[i].gpio_oth[j],
+	//						(1 - sensor_config->camera_config->gpio_level_bit));
+	//				}
+	//			}
+	//		}
+//
+	//		if(!mclk_is_not_configed){
+	//			/* enable mclk */
+	//			write_mipi_host_freq(i, frequency);
+	//			enable_mipi_host_clock(i, 1);
+	//		}
+//
+	//		// 从指定的vcon关联的i2c bus上读取 vp_sensor_config_list 中指定的 chip_id_reg 对应的寄存器值
+	//		ret = check_sensor_reg_value(vcon_props_array[i], sensor_config);
+	//		if (ret == 0) {
+	//			csi_config->index = i;
+	//			csi_config->mclk_is_not_configed = mclk_is_not_configed;
+	//			// 检测到 sensor，保存 sensor 信息
+	//			printf("INFO: Found sensor_name:%s on mipi rx csi %d, i2c addr 0x%x, config_file:%s\n",
+	//				sensor_config->sensor_name, vcon_props_array[i].rx_phy[1],
+	//				sensor_config->camera_config->addr, sensor_config->config_file);
+	//			break;
+	//		}
+	//	}
+	//}
+//
+	//return ret;
+	return 0;
 }
 
 
 int32_t vp_sensor_fixed_mipi_host(vp_sensor_config_t *sensor_config, vp_csi_config_t* csi_config)
 {
-	int32_t ret = 0, i = 0, j = 0;
-	uint32_t frequency = 24000000;
-	int is_need_used_csi[VP_MAX_VCON_NUM] = {true, true, true, true};
-	should_used_csi(is_need_used_csi);
-
-	struct vcon_properties vcon_props_array[VP_MAX_VCON_NUM];
-
-	// Iterate over vcon@0 - 3
-	for (i = 0; i < VP_MAX_VCON_NUM; ++i) {
-		if (is_need_used_csi[i] == false) {
-			continue;
-		}
-		if (check_mipi_host_status(i) == 0)
-			continue;
-		int mclk_is_not_configed = vp_sensor_mipi_host_mclk_is_not_configed(i);
-		read_vcon_info_from_device_tree(i, &vcon_props_array[i]);
-
-		printf("Searching camera sensor on device: %s ", vcon_props_array[i].device_path);
-		printf("i2c bus: %d ", vcon_props_array[i].bus);
-		printf("mipi rx phy: %d\n", vcon_props_array[i].rx_phy[1]);
-		// printf("mipi mclk: %d\n", vcon_props_array[i].rx_phy[1]);
-
-		// 如果该vcon使能了，检测该vcon上是否有连接 sensor
-		if (vcon_props_array[i].status[0] == 'o') { // okay
-			// 检测该vcon上连接的 sensor
-			/*enable gpio_oth, enable camera sensor gpio, maybe pwd/reset gpio */
-			for (j = 0; j < 8; ++j) {
-				if (vcon_props_array[i].gpio_oth[j] != 0) {
-					if (sensor_config->camera_config->gpio_enable_bit != 0) {
-						// gpio_level should be from sensor config and sensor spec
-						enable_sensor_pin(vcon_props_array[i].gpio_oth[j],
-							(1 - sensor_config->camera_config->gpio_level_bit));
-					}
-				}
-			}
-
-			if(!mclk_is_not_configed){
-				/* enable mclk */
-				write_mipi_host_freq(i, frequency);
-				enable_mipi_host_clock(i, 1);
-
-			}
-			// 从指定的vcon关联的i2c bus上读取 vp_sensor_config_list 中指定的 chip_id_reg 对应的寄存器值
-			ret = check_sensor_reg_value(vcon_props_array[i], sensor_config);
-			if (ret == 0) {
-				csi_config->index = i;
-				csi_config->mclk_is_not_configed = mclk_is_not_configed;
-				// sensor_config->csi_index = vcon_props_array[i].rx_phy[1];
-				// 检测到 sensor，保存 sensor 信息
-				printf("INFO: Found sensor_name:%s on mipi rx csi %d, i2c addr 0x%x, config_file:%s\n",
-					sensor_config->sensor_name, vcon_props_array[i].rx_phy[1],
-					sensor_config->camera_config->addr, sensor_config->config_file);
-
-				break;
-			}
-		}
-	}
-
-	return ret;
+	//int32_t ret = 0, i = 0, j = 0;
+	//uint32_t frequency = 24000000;
+	//int is_need_used_csi[VP_MAX_VCON_NUM] = {true, true, true, true};
+	//should_used_csi(is_need_used_csi);
+//
+	//struct vcon_properties vcon_props_array[VP_MAX_VCON_NUM];
+//
+	//// Iterate over vcon@0 - 3
+	//for (i = 0; i < VP_MAX_VCON_NUM; ++i) {
+	//	if (is_need_used_csi[i] == false) {
+	//		continue;
+	//	}
+	//	if (check_mipi_host_status(i) == 0)
+	//		continue;
+	//	int mclk_is_not_configed = vp_sensor_mipi_host_mclk_is_not_configed(i);
+	//	read_vcon_info_from_device_tree(i, &vcon_props_array[i]);
+//
+	//	printf("Searching camera sensor on device: %s ", vcon_props_array[i].device_path);
+	//	printf("i2c bus: %d ", vcon_props_array[i].bus);
+	//	printf("mipi rx phy: %d\n", vcon_props_array[i].rx_phy[1]);
+	//	// printf("mipi mclk: %d\n", vcon_props_array[i].rx_phy[1]);
+//
+	//	// 如果该vcon使能了，检测该vcon上是否有连接 sensor
+	//	if (vcon_props_array[i].status[0] == 'o') { // okay
+	//		// 检测该vcon上连接的 sensor
+	//		/*enable gpio_oth, enable camera sensor gpio, maybe pwd/reset gpio */
+	//		for (j = 0; j < 8; ++j) {
+	//			if (vcon_props_array[i].gpio_oth[j] != 0) {
+	//				if (sensor_config->camera_config->gpio_enable_bit != 0) {
+	//					// gpio_level should be from sensor config and sensor spec
+	//					enable_sensor_pin(vcon_props_array[i].gpio_oth[j],
+	//						(1 - sensor_config->camera_config->gpio_level_bit));
+	//				}
+	//			}
+	//		}
+//
+	//		if(!mclk_is_not_configed){
+	//			/* enable mclk */
+	//			write_mipi_host_freq(i, frequency);
+	//			enable_mipi_host_clock(i, 1);
+//
+	//		}
+	//		// 从指定的vcon关联的i2c bus上读取 vp_sensor_config_list 中指定的 chip_id_reg 对应的寄存器值
+	//		ret = check_sensor_reg_value(vcon_props_array[i], sensor_config);
+	//		if (ret == 0) {
+	//			csi_config->index = i;
+	//			csi_config->mclk_is_not_configed = mclk_is_not_configed;
+	//			// sensor_config->csi_index = vcon_props_array[i].rx_phy[1];
+	//			// 检测到 sensor，保存 sensor 信息
+	//			printf("INFO: Found sensor_name:%s on mipi rx csi %d, i2c addr 0x%x, config_file:%s\n",
+	//				sensor_config->sensor_name, vcon_props_array[i].rx_phy[1],
+	//				sensor_config->camera_config->addr, sensor_config->config_file);
+//
+	//			break;
+	//		}
+	//	}
+	//}
+//
+	//return ret;
+	return 0;
 }
 
 vp_sensor_config_t *vp_get_sensor_config_by_mipi_host(int32_t mipi_host_index,
 	vp_csi_config_t* csi_config,int sensor_height,int sensor_width,int sensor_fps)
 {
-	int32_t ret = 0, j = 0;
-	uint32_t frequency = 24000000;
-	int is_need_used_csi[VP_MAX_VCON_NUM] = {true, true, true, true};
-	should_used_csi(is_need_used_csi);
-	int32_t sensor_n = 0;
-	int32_t sensor_list[10] = {-1};
+//	int32_t ret = 0, j = 0;
+//	uint32_t frequency = 24000000;
+//	int is_need_used_csi[VP_MAX_VCON_NUM] = {true, true, true, true};
+//	should_used_csi(is_need_used_csi);
+//	int32_t sensor_n = 0;
+//	int32_t sensor_list[10] = {-1};
+//
+//	struct vcon_properties vcon_props_array[VP_MAX_VCON_NUM];
+//
+//	if (check_mipi_host_status(mipi_host_index) == 0) {
+//		printf("Mipi csi%d has been used, please use other Cam interfaces\n", mipi_host_index);
+//		return NULL;
+//	}
+//	int mclk_is_not_configed = vp_sensor_mipi_host_mclk_is_not_configed(mipi_host_index);
+//	read_vcon_info_from_device_tree(mipi_host_index, &vcon_props_array[mipi_host_index]);
+//
+//	if(!mclk_is_not_configed) {
+//		/* enable mclk */
+//		write_mipi_host_freq(mipi_host_index, frequency);
+//		enable_mipi_host_clock(mipi_host_index, 1);
+//	}
+//
+//	csi_config->mclk_is_not_configed = mclk_is_not_configed;
+//
+//	printf("Searching camera sensor on device: %s ", vcon_props_array[mipi_host_index].device_path);
+//	printf("i2c bus: %d ", vcon_props_array[mipi_host_index].bus);
+//	printf("mipi rx phy: %d\n", vcon_props_array[mipi_host_index].rx_phy[1]);
+//
+//	// 如果该vcon使能了，检测该vcon上是否有连接 sensor
+//	if (vcon_props_array[mipi_host_index].status[0] == 'o') { // okay
+//		// 检测该vcon上连接的 sensor
+//		for (j = 0; j < vp_get_sensors_list_number(); j++) {
+//			/*enable gpio_oth, enable camera sensor gpio, maybe pwd/reset gpio */
+//			for (int k = 0; k < 8; ++k) {
+//				if (vcon_props_array[mipi_host_index].gpio_oth[k] != 0) {
+//					if ((vp_sensor_config_list[j]->camera_config->gpio_enable_bit & (1 << k)) != 0) {
+//						enable_sensor_pin(vcon_props_array[mipi_host_index].gpio_oth[k],
+//							(1 - vp_sensor_config_list[j]->camera_config->gpio_level_bit));
+//					}
+//				}
+//			}
+//
+//			int ret = check_sensor_reg_value(vcon_props_array[mipi_host_index], vp_sensor_config_list[j]);
+//			if (ret == 0) {
+//				if ((sensor_height == -1 || vp_sensor_config_list[j]->camera_config->height == sensor_height) && 
+//    			  (sensor_width == -1 || vp_sensor_config_list[j]->camera_config->width == sensor_width) && 
+//    			  (sensor_fps == -1 || vp_sensor_config_list[j]->camera_config->fps == sensor_fps)) {
+//					printf("[%d] INFO: Found sensor name:%s on mipi rx csi %d, "
+//						"i2c addr 0x%x, config_file:%s\n",
+//					sensor_n,
+//					vp_sensor_config_list[j]->sensor_name,
+//					vcon_props_array[mipi_host_index].rx_phy[1],
+//					vp_sensor_config_list[j]->camera_config->addr,
+//					vp_sensor_config_list[j]->config_file);
+//					if(sensor_n < 10)
+//					{
+//						sensor_list[sensor_n] = j;
+//						sensor_n++;
+//					}
+//					else
+//						break;
+//				}
+//			}
+//		}
+//
+//		if(sensor_n > 0)
+//		{
+//			j = 0;
+//			if(sensor_n > 1)
+//			{
+//				printf("plase chouse sensor config,the number should small than %d\n",sensor_n);
+//				scanf("%d", &j);
+//				if (j >= sensor_n) 
+//				{
+//					printf("The number is greater than sensor_n %d ,use 0\n", sensor_n);
+//					j = 0;
+//				}
+//			}
+//			/* Fixed Mipi host */
+//			vp_sensor_config_list[sensor_list[j]]->vin_attr->vin_node_attr.cim_attr.mipi_rx = vcon_props_array[mipi_host_index].rx_phy[1];
+//			return vp_sensor_config_list[sensor_list[j]];
+//		}
+//	}
+//	return NULL;
 
-	struct vcon_properties vcon_props_array[VP_MAX_VCON_NUM];
-
-	if (check_mipi_host_status(mipi_host_index) == 0) {
-		printf("Mipi csi%d has been used, please use other Cam interfaces\n", mipi_host_index);
-		return NULL;
-	}
-	int mclk_is_not_configed = vp_sensor_mipi_host_mclk_is_not_configed(mipi_host_index);
-	read_vcon_info_from_device_tree(mipi_host_index, &vcon_props_array[mipi_host_index]);
-
-	if(!mclk_is_not_configed) {
-		/* enable mclk */
-		write_mipi_host_freq(mipi_host_index, frequency);
-		enable_mipi_host_clock(mipi_host_index, 1);
-	}
-
-	csi_config->mclk_is_not_configed = mclk_is_not_configed;
-
-	printf("Searching camera sensor on device: %s ", vcon_props_array[mipi_host_index].device_path);
-	printf("i2c bus: %d ", vcon_props_array[mipi_host_index].bus);
-	printf("mipi rx phy: %d\n", vcon_props_array[mipi_host_index].rx_phy[1]);
-
-	// 如果该vcon使能了，检测该vcon上是否有连接 sensor
-	if (vcon_props_array[mipi_host_index].status[0] == 'o') { // okay
-		// 检测该vcon上连接的 sensor
-		for (j = 0; j < vp_get_sensors_list_number(); j++) {
-			/*enable gpio_oth, enable camera sensor gpio, maybe pwd/reset gpio */
-			for (int k = 0; k < 8; ++k) {
-				if (vcon_props_array[mipi_host_index].gpio_oth[k] != 0) {
-					if ((vp_sensor_config_list[j]->camera_config->gpio_enable_bit & (1 << k)) != 0) {
-						enable_sensor_pin(vcon_props_array[mipi_host_index].gpio_oth[k],
-							(1 - vp_sensor_config_list[j]->camera_config->gpio_level_bit));
-					}
-				}
-			}
-
-			int ret = check_sensor_reg_value(vcon_props_array[mipi_host_index], vp_sensor_config_list[j]);
-			if (ret == 0) {
-				if ((sensor_height == -1 || vp_sensor_config_list[j]->camera_config->height == sensor_height) && 
-    			  (sensor_width == -1 || vp_sensor_config_list[j]->camera_config->width == sensor_width) && 
-    			  (sensor_fps == -1 || vp_sensor_config_list[j]->camera_config->fps == sensor_fps)) {
-					printf("[%d] INFO: Found sensor name:%s on mipi rx csi %d, "
-						"i2c addr 0x%x, config_file:%s\n",
-					sensor_n,
-					vp_sensor_config_list[j]->sensor_name,
-					vcon_props_array[mipi_host_index].rx_phy[1],
-					vp_sensor_config_list[j]->camera_config->addr,
-					vp_sensor_config_list[j]->config_file);
-					if(sensor_n < 10)
-					{
-						sensor_list[sensor_n] = j;
-						sensor_n++;
-					}
-					else
-						break;
-				}
-			}
-		}
-
-		if(sensor_n > 0)
-		{
-			j = 0;
-			if(sensor_n > 1)
-			{
-				printf("plase chouse sensor config,the number should small than %d\n",sensor_n);
-				scanf("%d", &j);
-				if (j >= sensor_n) 
-				{
-					printf("The number is greater than sensor_n %d ,use 0\n", sensor_n);
-					j = 0;
-				}
-			}
-			/* Fixed Mipi host */
-			vp_sensor_config_list[sensor_list[j]]->vin_node_attr->cim_attr.mipi_rx = vcon_props_array[mipi_host_index].rx_phy[1];
-			return vp_sensor_config_list[sensor_list[j]];
-		}
-	}
-	return NULL;
+// to do 后面修改为通过配置文件判断sensor config
+return vp_sensor_config_list[0];
 }

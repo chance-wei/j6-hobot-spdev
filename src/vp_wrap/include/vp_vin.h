@@ -19,8 +19,8 @@ int32_t vp_vin_start(vp_vflow_contex_t *vp_vflow_contex);
 int32_t vp_vin_stop(vp_vflow_contex_t *vp_vflow_contex);
 int32_t vp_vin_deinit(vp_vflow_contex_t *vp_vflow_contex);
 
-int32_t vp_vin_get_frame(vp_vflow_contex_t *vp_vflow_contex, hbn_vnode_image_t *image_frame);
-int32_t vp_vin_release_frame(vp_vflow_contex_t *vp_vflow_contex, hbn_vnode_image_t *image_frame);
+int32_t vp_vin_get_frame(vp_vflow_contex_t *vp_vflow_contex, ImageFrame *frame);
+int32_t vp_vin_release_frame(vp_vflow_contex_t *vp_vflow_contex, ImageFrame *frame);
 
 #ifdef __cplusplus
 }

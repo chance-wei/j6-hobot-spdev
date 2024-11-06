@@ -9,7 +9,6 @@
 set -e  # Exit immediately if a command exits with a non-zero status
 set -u  # Treat unset variables as an error
 set -o pipefail  # Causes a pipeline to produce a failure return code if any command errors
-
 usage() {
 	echo "usage: bash build.sh [ARCH] [MODE] [BIT]"
 	echo "  ARCH: compile architecture (e.g., arm64)"
@@ -23,7 +22,7 @@ ARCH="arm64"
 MODE="release"
 BIT="64bit"
 
-export CROSS_COMPILE=${CROSS_COMPILE:-/opt/gcc-arm-11.2-2022.02-x86_64-aarch64-none-linux-gnu/bin/aarch64-none-linux-gnu-}
+export CROSS_COMPILE=${CROSS_COMPILE:-/opt/arm-gnu-toolchain-12.2.rel1-x86_64-aarch64-none-linux-gnu/bin/aarch64-none-linux-gnu-}
 
 # Set default output paths
 SYSROOT_DIR="${SYSROOT_DIR:-$(realpath ../../deploy)/rootfs}"
@@ -79,10 +78,10 @@ if [ "${ARCH}" != "arm64" ]; then
 fi
 
 # Validate MODE
-if [ "${MODE}" != "release" ] && [ "${MODE}" != "debug" ]; then
-	echo "error!!! compile mode: ${MODE} is not supported."
-	usage
-fi
+#if [ "${MODE}" != "release" ] && [ "${MODE}" != "debug" ]; then
+#	echo "error!!! compile mode: ${MODE} is not supported."
+#	usage
+#fi
 
 # Validate BIT
 if [ "${BIT}" != "32bit" ] && [ "${BIT}" != "64bit" ]; then
@@ -94,7 +93,7 @@ function cmake_build() {
 	mkdir -p "${BUILD_DIR}"
 	mkdir -p "${OUTPUT_DIR}"
 	cd "${BUILD_DIR}"
-	cmake "${ALL_PROJECT_DIR}" -DCMAKE_BUILD_TYPE="${MODE}"
+	cmake -DCMAKE_BUILD_TYPE="${MODE}" "${ALL_PROJECT_DIR}"
 	make VERBOSE=1
 	make install
 

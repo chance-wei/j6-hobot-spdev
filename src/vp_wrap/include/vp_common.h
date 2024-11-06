@@ -33,7 +33,7 @@
 #define VP_CODEC_MASK 0x00000000
 #define VPP_DISPLAY_MASK 0xfffffffe
 
-#define VP_GET_FRAME_TIMEOUT 2000
+#define VP_GET_FRAME_TIMEOUT 1000
 
 #define VSE_DS_CHN_NUM 5
 #define VSE_US_CHN_NUM 1
@@ -86,6 +86,7 @@ typedef struct {
 	media_codec_output_buffer_info_t buffer_info;
 	// hbn_vnode_image_t
 	hbn_vnode_image_t vnode_image;
+	hbn_vnode_image_group_t vnode_image_group;
 } ImageFrame;
 
 typedef struct vse_info_s {
@@ -126,13 +127,14 @@ typedef struct vp_vflow_contex_s {
 	hbn_vflow_handle_t vflow_fd;
 	vp_sensors_parameters *para;
 	camera_handle_t cam_fd;
+	deserial_handle_t  des_fd;
 	int32_t mipi_csi_rx_index;
 	int32_t mclk_is_not_configed;
 	vp_sensor_config_t *sensor_config;
 	hbn_vnode_handle_t vin_node_handle;
 	hbn_vnode_handle_t isp_node_handle;
 	int32_t vse_chn_num;
-	vse_config_t vse_config;
+	pym_cfg_t pym_config;
 	osd_user_info_t osd_info;
 	gdc_user_info_t gdc_info;
 	hbn_vnode_handle_t vse_node_handle;

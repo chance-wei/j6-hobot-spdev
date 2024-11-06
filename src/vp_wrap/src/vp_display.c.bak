@@ -399,7 +399,7 @@ static void print_connector_info(int drm_fd) {
 
 		printf("Connector ID: %u\n", connector_id);
 		printf("    Type: %d\n", connector->connector_type);
-		printf("    Type Name: %s\n", drmModeGetConnectorTypeName(connector->connector_type));
+        //printf("    Type Name: %s\n", drmModeGetConnectorTypeName(connector->connector_type));
 		printf("    Connection: %s\n", connector->connection == DRM_MODE_CONNECTED ? "Connected" : "Disconnected");
 		printf("    Modes: %d\n", connector->count_modes);
 		printf("    Subpixel: %d\n", connector->subpixel);

@@ -300,8 +300,6 @@ int GetBboxAndScoresQuantiNONE(
   uint32_t b_wnum = shape[2];
   //uint32_t b_cnum = shape[3];
 
-  assert(anchor_num_per_pixel == b_cnum / 4);
-  assert(c_batch_size == b_batch_size && c_hnum == b_hnum && c_wnum == b_wnum);
   auto box_num = b_batch_size * b_hnum * b_wnum * anchor_num_per_pixel;
 
   auto *raw_cls_data = reinterpret_cast<float *>(cls_tensor->sysMem[0].virAddr);

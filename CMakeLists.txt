@@ -8,7 +8,7 @@ project(hobot_spdev)
 set(SOC "X5")
 add_definitions(-D${SOC}="${SOC}")
 
-option(RELEASE_LIB "build version of release" ON)
+option(RELEASE_LIB "build version of release" OFF)
 message("config types: ${CMAKE_CONFIGURATION_TYPES}")
 
 if (${RELEASE_LIB})
@@ -60,12 +60,20 @@ set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
 set(OUTPUT_ROOT ${CMAKE_SOURCE_DIR}/output/${PROJECT_NAME})
 
 # link library
-set(BASE_LIBRARIES pthread dl rt)
+set(BASE_LIBRARIES pthread dl rt drm)
+
+#if ("${SOC}" STREQUAL "X5")
+#    set(HB_SDK_LIB Nano2D Nano2Dutil cam vpf hbmem multimedia avformat avcodec avutil
+#    swresample ffmedia gdcbin cjson alog
+#    dnn cnn_intf hbrt_bayes_aarch64
+#    m EGL GL X11
+#    ssl crypto z dl rt pthread python3.10)
+#endif()
 
 if ("${SOC}" STREQUAL "X5")
-    set(HB_SDK_LIB Nano2D Nano2Dutil cam vpf hbmem multimedia avformat avcodec avutil
+    set(HB_SDK_LIB cam vpf hbmem multimedia avformat avcodec avutil
     swresample ffmedia gdcbin cjson alog
-    dnn cnn_intf hbrt_bayes_aarch64
+    dnn
     m EGL GL X11
     ssl crypto z dl rt pthread python3.10)
 endif()

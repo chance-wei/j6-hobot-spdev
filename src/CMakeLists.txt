@@ -17,8 +17,9 @@ file(GLOB HBSPDEV_SRC
     "vpp_interface/*.cpp"
     "vp_wrap/src/*.cpp"
     "vp_wrap/src/*.c"
+    "vp_sensors/sc230ai/linear_1920x1080_raw10_30fps_1lane.c"
     "vp_sensors/*.c"
-    "vp_sensors/*/*.c"
+#   "vp_sensors/*/*.c"
     )
 
 set(SOURCE_FILES ${HBSPDEV_SRC} ${HBSPDEV_INC})

@@ -188,7 +188,7 @@ namespace spdev
 		int vse_chn = 0, vse_chn_en = 0;
 		camera_config_t *camera_config = NULL;
 		isp_ichn_attr_t *isp_ichn_attr = NULL;
-		vse_config_t *vse_config = NULL;
+		pym_cfg_t *pym_config = NULL; // vse_config_t *vse_config = NULL;
 		vp_csi_config_t csi_config = {0};
 		int32_t input_width = 0, input_height = 0;
 		board_camera_info_t camera_info[MAX_CAMERAS];
@@ -202,90 +202,152 @@ namespace spdev
 		memset(vp_vflow_contex, 0, sizeof(vp_vflow_contex_t));
 		printf("set camera fps: %d,width: %d,height: %d\n",sensor_fps,sensor_width,sensor_height);
 		memset(camera_info, 0, sizeof(camera_info));
-		ret = parse_config("/etc/board_config.json", camera_info);
-		if (ret != 0) {
-			printf("Failed to parse cameras\n");
-			return -1;
-		}
+		/* to do 这里不需要解析json，需要删掉
+		*ret = parse_config("/etc/board_config.json", camera_info);
+		*if (ret != 0) {
+		*	printf("Failed to parse cameras\n");
+		*	return -1;
+		*}
 
-		for (int i = 0; i < MAX_CAMERAS; i++) {
-			printf("Camera %d:\n", i);
-			// printf("\tenable: %d\n", camera_info[i].enable);
-			printf("\ti2c_bus: %d\n", camera_info[i].i2c_bus);
-			printf("\tmipi_host: %d\n", camera_info[i].mipi_host);
-		}
-
+		*for (int i = 0; i < MAX_CAMERAS; i++) {
+		*	printf("Camera %d:\n", i);
+		*	// printf("\tenable: %d\n", camera_info[i].enable);
+		*	printf("\ti2c_bus: %d\n", camera_info[i].i2c_bus);
+		*	printf("\tmipi_host: %d\n", camera_info[i].mipi_host);
+		*}
+		*/
 		// 1. Detect Sensor
 		// 如果video_index 为 -1 ，那么遍历板子上的camera接口，否则使用指定的接口号
 		// RDK X5 有两个 CAM 接口，分别对应 mipi host0 和 mipi host2,
 		// EVB 1_B 最大支持4路 CAM 接口，有 mipi host0-3，
 		// 读取 /etc/board_config.json 文件中关于camera接口的配置匹配不同的接口
 		// 每个sensor会支持不同的分辨率，需要根据传入的 parameters 选择 sensor 配置
-		if (video_index >= 0 && video_index < MAX_CAMERAS) {
-			vp_vflow_contex->mipi_csi_rx_index = camera_info[video_index].mipi_host;
-			vp_vflow_contex->sensor_config =
-				vp_get_sensor_config_by_mipi_host(camera_info[video_index].mipi_host, &csi_config,sensor_height,sensor_width,sensor_fps);
-		} else if (video_index == -1) {
-			for (int i = 0; i < MAX_CAMERAS; i++) {
-				if (!camera_info[i].enable)
-					continue;
-				vp_vflow_contex->mipi_csi_rx_index = camera_info[i].mipi_host;
-				vp_vflow_contex->sensor_config =
-					vp_get_sensor_config_by_mipi_host(camera_info[i].mipi_host, &csi_config,sensor_height,sensor_width,sensor_fps);
-				if (vp_vflow_contex->sensor_config != NULL)
-					break;
-			}
-		} else {
-			SC_LOGE("The parameter video_idx=%d is not supported. Please set it to one of [-1, 0, 1, 2, 3].");
-			return -1;
-		}
+		//if (video_index >= 0 && video_index < MAX_CAMERAS) {
+		//	vp_vflow_contex->mipi_csi_rx_index = camera_info[video_index].mipi_host;
+		//	vp_vflow_contex->sensor_config =
+		//		vp_get_sensor_config_by_mipi_host(camera_info[video_index].mipi_host, &csi_config,sensor_height,sensor_width,sensor_fps);
+		//} else if (video_index == -1) {
+		//	for (int i = 0; i < MAX_CAMERAS; i++) {
+		//		if (!camera_info[i].enable)
+		//			continue;
+		//		vp_vflow_contex->mipi_csi_rx_index = camera_info[i].mipi_host;
+		//		vp_vflow_contex->sensor_config =
+		//			vp_get_sensor_config_by_mipi_host(camera_info[i].mipi_host, &csi_config,sensor_height,sensor_width,sensor_fps);
+		//		if (vp_vflow_contex->sensor_config != NULL)
+		//			break;
+		//	}
+		//} else {
+		//	SC_LOGE("The parameter video_idx=%d is not supported. Please set it to one of [-1, 0, 1, 2, 3].");
+		//	return -1;
+		//}
 
-		if (vp_vflow_contex->sensor_config == NULL) {
-			SC_LOGE("No camera sensor found, "
-				"please check whether the camera connection or video_idx is correct.\n");
-			return -1;
-		}
+		//to do 后面修改为通过配置获取sensor 配置
+		vp_vflow_contex->mipi_csi_rx_index = camera_info[0].mipi_host;
+		vp_vflow_contex->sensor_config = vp_get_sensor_config_by_mipi_host(camera_info[0].mipi_host, &csi_config,sensor_height,sensor_width,sensor_fps);
 
 		// 2. Setting Vse channel
-		vse_config = &vp_vflow_contex->vse_config;
+		pym_config = &vp_vflow_contex->pym_config;
 		isp_ichn_attr = vp_vflow_contex->sensor_config->isp_ichn_attr;
 		vp_vflow_contex->mclk_is_not_configed = csi_config.mclk_is_not_configed;
 
-		input_width = isp_ichn_attr->width;
-		input_height = isp_ichn_attr->height;
+		input_width = isp_ichn_attr->input_crop_cfg.rect.width;
+		input_height = isp_ichn_attr->input_crop_cfg.rect.height;
 		SC_LOGD("VSE: input_width: %d input_height: %d",
 			input_width, input_height);
 
-		vse_config->vse_ichn_attr.width = input_width;
-		vse_config->vse_ichn_attr.height = input_height;
-		vse_config->vse_ichn_attr.fmt = FRM_FMT_NV12;
-		vse_config->vse_ichn_attr.bit_width = 8;
+		//vse_config->vse_ichn_attr.width = input_width;
+		//vse_config->vse_ichn_attr.height = input_height;
+		//vse_config->vse_ichn_attr.fmt = FRM_FMT_NV12;
+		//vse_config->vse_ichn_attr.bit_width = 8;
+//
+		//// 设置VSE通道0输出属性
+		//for (i = 0; i < chn_num; i++) {
+		//	if ((width[i] == 0) && (height[i] == 0)) {//如果高宽为0，那么就开一个和原始高宽一致的通道
+		//		width[i] = input_width;
+		//		height[i] = input_height;
+		//	}
+		//	vse_chn = SelectVseChn(&vse_chn_en, input_width, input_height, width[i], height[i]);
+		//	if (vse_chn < 0) {
+		//		LOGE_print("Invalid size:%dx%d\n", width[i], height[i]);
+		//		return -1;
+		//	}
+		//	vse_config->vse_ochn_attr[vse_chn].chn_en = CAM_TRUE;
+		//	vse_config->vse_ochn_attr[vse_chn].roi.x = 0;
+		//	vse_config->vse_ochn_attr[vse_chn].roi.y = 0;
+		//	vse_config->vse_ochn_attr[vse_chn].roi.w = input_width;
+		//	vse_config->vse_ochn_attr[vse_chn].roi.h = input_height;
+		//	vse_config->vse_ochn_attr[vse_chn].target_w = width[i];
+		//	vse_config->vse_ochn_attr[vse_chn].target_h = height[i];
+		//	vse_config->vse_ochn_attr[vse_chn].fmt = FRM_FMT_NV12;
+		//	vse_config->vse_ochn_attr[vse_chn].bit_width = 8;
+		//	vse_chn_en |= 1 << vse_chn;
+		//	SC_LOGI("Setting VSE channel-%d: input_width:%d, input_height:%d, dst_w:%d, dst_h:%d",
+		//		vse_chn,
+		//		input_width, input_height, width[i], height[i]);
+		//}
 
-		// 设置VSE通道0输出属性
-		for (i = 0; i < chn_num; i++) {
-			if ((width[i] == 0) && (height[i] == 0)) {//如果高宽为0，那么就开一个和原始高宽一致的通道
-				width[i] = input_width;
-				height[i] = input_height;
-			}
-			vse_chn = SelectVseChn(&vse_chn_en, input_width, input_height, width[i], height[i]);
-			if (vse_chn < 0) {
-				LOGE_print("Invalid size:%dx%d\n", width[i], height[i]);
-				return -1;
-			}
-			vse_config->vse_ochn_attr[vse_chn].chn_en = CAM_TRUE;
-			vse_config->vse_ochn_attr[vse_chn].roi.x = 0;
-			vse_config->vse_ochn_attr[vse_chn].roi.y = 0;
-			vse_config->vse_ochn_attr[vse_chn].roi.w = input_width;
-			vse_config->vse_ochn_attr[vse_chn].roi.h = input_height;
-			vse_config->vse_ochn_attr[vse_chn].target_w = width[i];
-			vse_config->vse_ochn_attr[vse_chn].target_h = height[i];
-			vse_config->vse_ochn_attr[vse_chn].fmt = FRM_FMT_NV12;
-			vse_config->vse_ochn_attr[vse_chn].bit_width = 8;
-			vse_chn_en |= 1 << vse_chn;
-			SC_LOGI("Setting VSE channel-%d: input_width:%d, input_height:%d, dst_w:%d, dst_h:%d",
-				vse_chn,
-				input_width, input_height, width[i], height[i]);
-		}
+		// to do 这里进行静态vse=pym配置，后续修改传值
+		pym_config->hw_id = 1;
+		pym_config->pym_mode = 1;
+		pym_config->slot_id = 0;
+		pym_config->pingpong_ring = 0;
+		pym_config->output_buf_num = 6;
+		pym_config->fb_buf_num = 2;
+		pym_config->timeout = 0;
+		pym_config->threshold_time = 0;
+		pym_config->layer_num_trans_next = 0;
+		pym_config->layer_num_share_prev = -1;
+		pym_config->out_buf_noinvalid = 1;
+		pym_config->out_buf_noncached = 0;
+		pym_config->in_buf_noclean = 1;
+		pym_config->in_buf_noncached = 0;
+
+		pym_config->chn_ctrl.pixel_num_before_sol = DEF_PIX_NUM_BF_SOL;
+	    pym_config->chn_ctrl.invalid_head_lines = 0;
+	    pym_config->chn_ctrl.src_in_width = 3840;
+	    pym_config->chn_ctrl.src_in_height = 2160;
+	    pym_config->chn_ctrl.src_in_stride_y = 3840;
+	    pym_config->chn_ctrl.src_in_stride_uv = 3840;
+	    pym_config->chn_ctrl.suffix_hb_val = DEF_SUFFIX_HB;
+	    pym_config->chn_ctrl.prefix_hb_val = DEF_PREFIX_HB;
+	    pym_config->chn_ctrl.suffix_vb_val = DEF_SUFFIX_VB;
+	    pym_config->chn_ctrl.prefix_vb_val = DEF_PREFIX_VB;
+
+	    pym_config->chn_ctrl.pre_int_set_y[PRE_INT_0_SET] = 0;
+	    pym_config->chn_ctrl.pre_int_set_y[PRE_INT_1_SET] = 0;
+	    pym_config->chn_ctrl.pre_int_set_y[PRE_INT_2_SET] = 0;
+	    pym_config->chn_ctrl.pre_int_set_y[PRE_INT_3_SET] = 0;
+	    pym_config->chn_ctrl.pre_int_set_y[PRE_INT_4_SET] = 0;
+	    pym_config->chn_ctrl.pre_int_set_y[PRE_INT_5_SET] = 0;
+	    pym_config->chn_ctrl.pre_int_set_y[PRE_INT_6_SET] = 0;
+	    pym_config->chn_ctrl.pre_int_set_y[PRE_INT_7_SET] = 0;
+
+	    pym_config->chn_ctrl.pre_int_set_uv[PRE_INT_0_SET] = 0;
+	    pym_config->chn_ctrl.pre_int_set_uv[PRE_INT_1_SET] = 0;
+	    pym_config->chn_ctrl.pre_int_set_uv[PRE_INT_2_SET] = 0;
+	    pym_config->chn_ctrl.pre_int_set_uv[PRE_INT_3_SET] = 0;
+	    pym_config->chn_ctrl.pre_int_set_uv[PRE_INT_4_SET] = 0;
+	    pym_config->chn_ctrl.pre_int_set_uv[PRE_INT_5_SET] = 0;
+	    pym_config->chn_ctrl.pre_int_set_uv[PRE_INT_6_SET] = 0;
+	    pym_config->chn_ctrl.pre_int_set_uv[PRE_INT_7_SET] = 0;
+
+	    pym_config->chn_ctrl.ds_roi_en = 1;
+	    pym_config->chn_ctrl.bl_max_layer_en = DEF_BL_MAX_EN;
+	    pym_config->chn_ctrl.ds_roi_uv_bypass = 0;
+
+		pym_config->chn_ctrl.ds_roi_sel[0] = 0;
+		pym_config->chn_ctrl.ds_roi_layer[0] = 0;
+		pym_config->chn_ctrl.ds_roi_info[0].start_left = 0;
+		pym_config->chn_ctrl.ds_roi_info[0].start_top = 0;
+		pym_config->chn_ctrl.ds_roi_info[0].region_width = 1920;
+		pym_config->chn_ctrl.ds_roi_info[0].region_height = 1080;
+		pym_config->chn_ctrl.ds_roi_info[0].wstride_uv = 1920;
+		pym_config->chn_ctrl.ds_roi_info[0].wstride_y = 1920;
+		pym_config->chn_ctrl.ds_roi_info[0].out_width = 1920;
+		pym_config->chn_ctrl.ds_roi_info[0].out_height = 1080;
+		pym_config->chn_ctrl.ds_roi_info[0].vstride = pym_config->chn_ctrl.ds_roi_info[0].out_height;
+		pym_config->magicNumber = MAGIC_NUMBER;
+		
 
 		m_width = input_width;
 		m_height = input_height;
@@ -301,89 +363,151 @@ namespace spdev
 		int32_t i = 0;
 		int32_t ret = 0;
 		int vse_chn = 0, vse_chn_en = 0;
-		vse_config_t *vse_config = NULL;
+		pym_cfg_t *pym_config = NULL; // vse_config_t *vse_config = NULL;
 
 		memset(vp_vflow_contex, 0, sizeof(vp_vflow_contex_t));
 
-		vse_config = &vp_vflow_contex->vse_config;
+		pym_config = &vp_vflow_contex->pym_config; // vse_config = &vp_vflow_contex->vse_config;
 
-		vse_config->vse_ichn_attr.width = src_width;
-		vse_config->vse_ichn_attr.height = src_height;
-		vse_config->vse_ichn_attr.fmt = FRM_FMT_NV12;
-		vse_config->vse_ichn_attr.bit_width = 8;
+		//vse_config->vse_ichn_attr.width = src_width;
+		//vse_config->vse_ichn_attr.height = src_height;
+		//vse_config->vse_ichn_attr.fmt = FRM_FMT_NV12;
+		//vse_config->vse_ichn_attr.bit_width = 8;
+//
+		//SC_LOGD("VSE: input_width: %d input_height: %d",
+		//	src_width, src_height);
+//
+		//// 设置VSE通道0输出属性
+		//for (i = 0; i < chn_num; i++) {
+		//	switch (proc_mode)
+		//	{
+		//	case VPS_SCALE_ROTATE_CROP:
+		//	case VPS_SCALE_CROP:
+		//		if ((crop_width[i] == 0) || (crop_height[i] == 0)) {
+		//			crop_width[i] = src_width;
+		//			crop_height[i] = src_height;
+		//		}
+		//	case VPS_SCALE_ROTATE:
+		//	case VPS_SCALE:
+		//		if ((dst_width[i] == 0) && (dst_height[i] == 0)) {
+		//			if ((crop_width[i] != 0) && (crop_height[i] != 0)) {
+		//				dst_width[i] = crop_width[i];
+		//				dst_height[i] = crop_height[i];
+		//			} else {
+		//				dst_width[i] = src_width;
+		//				dst_height[i] = src_height;
+		//			}
+		//		}
+		//		break;
+		//	default:
+		//		break;
+		//	}
+//
+		//	vse_chn = SelectVseChn(&vse_chn_en, src_width, src_height, dst_width[i], dst_height[i]);
+		//	if (vse_chn < 0) {
+		//		LOGE_print("Invalid size:%dx%d\n", dst_width[i], dst_height[i]);
+		//		return -1;
+		//	}
+		//	if (proc_mode >= VPS_SCALE) {
+		//		vse_config->vse_ochn_attr[vse_chn].chn_en = CAM_TRUE;
+		//		vse_config->vse_ochn_attr[vse_chn].roi.x = 0;
+		//		vse_config->vse_ochn_attr[vse_chn].roi.y = 0;
+		//		vse_config->vse_ochn_attr[vse_chn].roi.w = src_width;
+		//		vse_config->vse_ochn_attr[vse_chn].roi.h = src_height;
+		//		vse_config->vse_ochn_attr[vse_chn].target_w = dst_width[i];
+		//		vse_config->vse_ochn_attr[vse_chn].target_h = dst_height[i];
+		//		vse_config->vse_ochn_attr[vse_chn].fmt = FRM_FMT_NV12;
+		//		vse_config->vse_ochn_attr[vse_chn].bit_width = 8;
+		//	} else if ((proc_mode == VPS_SCALE_CROP)) {
+		//		vse_config->vse_ochn_attr[vse_chn].chn_en = CAM_TRUE;
+		//		vse_config->vse_ochn_attr[vse_chn].roi.x = crop_x[i];
+		//		vse_config->vse_ochn_attr[vse_chn].roi.y = crop_y[i];
+		//		vse_config->vse_ochn_attr[vse_chn].roi.w = crop_width[i];
+		//		vse_config->vse_ochn_attr[vse_chn].roi.h = crop_height[i];
+		//		vse_config->vse_ochn_attr[vse_chn].target_w = dst_width[i];
+		//		vse_config->vse_ochn_attr[vse_chn].target_h = dst_height[i];
+		//		vse_config->vse_ochn_attr[vse_chn].fmt = FRM_FMT_NV12;
+		//		vse_config->vse_ochn_attr[vse_chn].bit_width = 8;
+		//	}
+		//	if ((proc_mode == VPS_SCALE_ROTATE)
+		//		|| (proc_mode == VPS_SCALE_ROTATE_CROP)
+		//		|| (proc_mode == VPS_SCALE_ROTATE_CROP)) {
+		//		SC_LOGE("VSE does not support rotating images");
+		//		return -1;
+		//	}
+		//	vse_chn_en |= 1 << vse_chn;
+		//	SC_LOGI("Setting VSE channel-%d: input_width:%d, input_height:%d, dst_w:%d, dst_h:%d",
+		//		vse_chn,
+		//		src_width, src_height, dst_width[i], dst_height[i]);
+		//}
 
-		SC_LOGD("VSE: input_width: %d input_height: %d",
-			src_width, src_height);
+		// to do 这里进行静态vse=pym配置，后续修改传值
+		pym_config->hw_id = 1;
+		pym_config->pym_mode = 1;
+		pym_config->slot_id = 0;
+		pym_config->pingpong_ring = 0;
+		pym_config->output_buf_num = 6;
+		pym_config->fb_buf_num = 2;
+		pym_config->timeout = 0;
+		pym_config->threshold_time = 0;
+		pym_config->layer_num_trans_next = 0;
+		pym_config->layer_num_share_prev = -1;
+		pym_config->out_buf_noinvalid = 1;
+		pym_config->out_buf_noncached = 0;
+		pym_config->in_buf_noclean = 1;
+		pym_config->in_buf_noncached = 0;
 
-		// 设置VSE通道0输出属性
-		for (i = 0; i < chn_num; i++) {
-			switch (proc_mode)
-			{
-			case VPS_SCALE_ROTATE_CROP:
-			case VPS_SCALE_CROP:
-				if ((crop_width[i] == 0) || (crop_height[i] == 0)) {
-					crop_width[i] = src_width;
-					crop_height[i] = src_height;
-				}
-			case VPS_SCALE_ROTATE:
-			case VPS_SCALE:
-				if ((dst_width[i] == 0) && (dst_height[i] == 0)) {
-					if ((crop_width[i] != 0) && (crop_height[i] != 0)) {
-						dst_width[i] = crop_width[i];
-						dst_height[i] = crop_height[i];
-					} else {
-						dst_width[i] = src_width;
-						dst_height[i] = src_height;
-					}
-				}
-				break;
-			default:
-				break;
-			}
+		pym_config->chn_ctrl.pixel_num_before_sol = DEF_PIX_NUM_BF_SOL;
+	    pym_config->chn_ctrl.invalid_head_lines = 0;
+	    pym_config->chn_ctrl.src_in_width = 3840;
+	    pym_config->chn_ctrl.src_in_height = 2160;
+	    pym_config->chn_ctrl.src_in_stride_y = 3840;
+	    pym_config->chn_ctrl.src_in_stride_uv = 3840;
+	    pym_config->chn_ctrl.suffix_hb_val = DEF_SUFFIX_HB;
+	    pym_config->chn_ctrl.prefix_hb_val = DEF_PREFIX_HB;
+	    pym_config->chn_ctrl.suffix_vb_val = DEF_SUFFIX_VB;
+	    pym_config->chn_ctrl.prefix_vb_val = DEF_PREFIX_VB;
 
-			vse_chn = SelectVseChn(&vse_chn_en, src_width, src_height, dst_width[i], dst_height[i]);
-			if (vse_chn < 0) {
-				LOGE_print("Invalid size:%dx%d\n", dst_width[i], dst_height[i]);
-				return -1;
-			}
-			if (proc_mode >= VPS_SCALE) {
-				vse_config->vse_ochn_attr[vse_chn].chn_en = CAM_TRUE;
-				vse_config->vse_ochn_attr[vse_chn].roi.x = 0;
-				vse_config->vse_ochn_attr[vse_chn].roi.y = 0;
-				vse_config->vse_ochn_attr[vse_chn].roi.w = src_width;
-				vse_config->vse_ochn_attr[vse_chn].roi.h = src_height;
-				vse_config->vse_ochn_attr[vse_chn].target_w = dst_width[i];
-				vse_config->vse_ochn_attr[vse_chn].target_h = dst_height[i];
-				vse_config->vse_ochn_attr[vse_chn].fmt = FRM_FMT_NV12;
-				vse_config->vse_ochn_attr[vse_chn].bit_width = 8;
-			} else if ((proc_mode == VPS_SCALE_CROP)) {
-				vse_config->vse_ochn_attr[vse_chn].chn_en = CAM_TRUE;
-				vse_config->vse_ochn_attr[vse_chn].roi.x = crop_x[i];
-				vse_config->vse_ochn_attr[vse_chn].roi.y = crop_y[i];
-				vse_config->vse_ochn_attr[vse_chn].roi.w = crop_width[i];
-				vse_config->vse_ochn_attr[vse_chn].roi.h = crop_height[i];
-				vse_config->vse_ochn_attr[vse_chn].target_w = dst_width[i];
-				vse_config->vse_ochn_attr[vse_chn].target_h = dst_height[i];
-				vse_config->vse_ochn_attr[vse_chn].fmt = FRM_FMT_NV12;
-				vse_config->vse_ochn_attr[vse_chn].bit_width = 8;
-			}
-			if ((proc_mode == VPS_SCALE_ROTATE)
-				|| (proc_mode == VPS_SCALE_ROTATE_CROP)
-				|| (proc_mode == VPS_SCALE_ROTATE_CROP)) {
-				SC_LOGE("VSE does not support rotating images");
-				return -1;
-			}
-			vse_chn_en |= 1 << vse_chn;
-			SC_LOGI("Setting VSE channel-%d: input_width:%d, input_height:%d, dst_w:%d, dst_h:%d",
-				vse_chn,
-				src_width, src_height, dst_width[i], dst_height[i]);
-		}
+	    pym_config->chn_ctrl.pre_int_set_y[PRE_INT_0_SET] = 0;
+	    pym_config->chn_ctrl.pre_int_set_y[PRE_INT_1_SET] = 0;
+	    pym_config->chn_ctrl.pre_int_set_y[PRE_INT_2_SET] = 0;
+	    pym_config->chn_ctrl.pre_int_set_y[PRE_INT_3_SET] = 0;
+	    pym_config->chn_ctrl.pre_int_set_y[PRE_INT_4_SET] = 0;
+	    pym_config->chn_ctrl.pre_int_set_y[PRE_INT_5_SET] = 0;
+	    pym_config->chn_ctrl.pre_int_set_y[PRE_INT_6_SET] = 0;
+	    pym_config->chn_ctrl.pre_int_set_y[PRE_INT_7_SET] = 0;
 
+	    pym_config->chn_ctrl.pre_int_set_uv[PRE_INT_0_SET] = 0;
+	    pym_config->chn_ctrl.pre_int_set_uv[PRE_INT_1_SET] = 0;
+	    pym_config->chn_ctrl.pre_int_set_uv[PRE_INT_2_SET] = 0;
+	    pym_config->chn_ctrl.pre_int_set_uv[PRE_INT_3_SET] = 0;
+	    pym_config->chn_ctrl.pre_int_set_uv[PRE_INT_4_SET] = 0;
+	    pym_config->chn_ctrl.pre_int_set_uv[PRE_INT_5_SET] = 0;
+	    pym_config->chn_ctrl.pre_int_set_uv[PRE_INT_6_SET] = 0;
+	    pym_config->chn_ctrl.pre_int_set_uv[PRE_INT_7_SET] = 0;
+
+	    pym_config->chn_ctrl.ds_roi_en = 1;
+	    pym_config->chn_ctrl.bl_max_layer_en = DEF_BL_MAX_EN;
+	    pym_config->chn_ctrl.ds_roi_uv_bypass = 0;
+
+		pym_config->chn_ctrl.ds_roi_sel[0] = 0;
+		pym_config->chn_ctrl.ds_roi_layer[0] = 0;
+		pym_config->chn_ctrl.ds_roi_info[0].start_left = 0;
+		pym_config->chn_ctrl.ds_roi_info[0].start_top = 0;
+		pym_config->chn_ctrl.ds_roi_info[0].region_width = 1920;
+		pym_config->chn_ctrl.ds_roi_info[0].region_height = 1080;
+		pym_config->chn_ctrl.ds_roi_info[0].wstride_uv = 1920;
+		pym_config->chn_ctrl.ds_roi_info[0].wstride_y = 1920;
+		pym_config->chn_ctrl.ds_roi_info[0].out_width = 1920;
+		pym_config->chn_ctrl.ds_roi_info[0].out_height = 1080;
+		pym_config->chn_ctrl.ds_roi_info[0].vstride = pym_config->chn_ctrl.ds_roi_info[0].out_height;
+		pym_config->magicNumber = MAGIC_NUMBER;
 		return ret;
 	}
+
 	int32_t VPPCamera::OpenCamera(const int pipe_id,
 								  const int32_t video_index,
-								  int32_t chn_num,
+								  int32_t chn_num, //to do： pym 只有一个通道 chn_num后续不需要传值
 								  int32_t *width, int32_t *height,
 								  vp_sensors_parameters *parameters)
 	{
@@ -398,20 +522,44 @@ namespace spdev
 		}
 
 		ret = vp_vin_init(vp_vflow_contex);
-		ret |= vp_isp_init(vp_vflow_contex);
-		ret |= vp_vse_init(vp_vflow_contex);
-		ret |= vp_vflow_init(vp_vflow_contex);
 		if (ret != 0){
-			SC_LOGE("pipeline init failed error(%d)", ret);
+			SC_LOGE("vp_vin_init failed error(%d)", ret);
+			return -1;
+		}
+		ret = vp_isp_init(vp_vflow_contex);
+		if (ret != 0){
+			SC_LOGE("vp_isp_init failed error(%d)", ret);
+			return -1;
+		}
+		ret = vp_vse_init(vp_vflow_contex);
+		if (ret != 0){
+			SC_LOGE("vp_vse_init failed error(%d)", ret);
+			return -1;
+		}
+		ret = vp_vflow_init(vp_vflow_contex);
+		if (ret != 0){
+			SC_LOGE("vp_vflow_init failed error(%d)", ret);
 			return -1;
 		}
 
 		ret = vp_vin_start(vp_vflow_contex);
-		ret |= vp_isp_start(vp_vflow_contex);
-		ret |= vp_vse_start(vp_vflow_contex);
-		ret |= vp_vflow_start(vp_vflow_contex);
 		if (ret != 0){
-			SC_LOGE("pipeline start failed error(%d)", ret);
+			SC_LOGE("vp_vin_start failed error(%d)", ret);
+			return -1;
+		}
+		ret = vp_isp_start(vp_vflow_contex);
+		if (ret != 0){
+			SC_LOGE("vp_isp_start failed error(%d)", ret);
+			return -1;
+		}
+		ret = vp_vse_start(vp_vflow_contex);
+		if (ret != 0){
+			SC_LOGE("vp_vse_start failed error(%d)", ret);
+			return -1;
+		}
+		ret = vp_vflow_start(vp_vflow_contex);
+		if (ret != 0){
+			SC_LOGE("vp_vflow_start failed error(%d)", ret);
 			return -1;
 		}
 
@@ -517,12 +665,12 @@ namespace spdev
 	{
 		int32_t ret = 0;
 
-		ret = vp_vse_get_frame(&m_vp_vflow_context, chn, &frame->vnode_image);
+		ret = vp_vse_get_frame(&m_vp_vflow_context, chn, frame);
 		if (ret)
 		{
 			return -1;
 		}
-		fill_image_frame_from_vnode_image(frame);
+		//fill_image_frame_from_vnode_image(frame);
 
 		return ret;
 	}
@@ -537,15 +685,15 @@ namespace spdev
 		switch (module)
 		{
 		case SP_DEV_RAW:
-			ret = vp_vin_get_frame(&m_vp_vflow_context, &(frame->vnode_image));
+			ret = vp_vin_get_frame(&m_vp_vflow_context, frame);
 			break;
 		case SP_DEV_ISP:
-			ret = vp_isp_get_frame(&m_vp_vflow_context, &frame->vnode_image);
+			ret = vp_isp_get_frame(&m_vp_vflow_context, frame);
 			break;
 		case SP_DEV_VSE:
 			chn = GetChnId(width, height);
 			if (chn >= 0) {
-				ret = vp_vse_get_frame(&m_vp_vflow_context, chn, &frame->vnode_image);
+				ret = vp_vse_get_frame(&m_vp_vflow_context, chn, frame);
 			} else {
 				LOGE_print("get chn from %dx%d failed", width, height);
 				return -1;
@@ -565,7 +713,7 @@ namespace spdev
 
 	void VPPCamera::ReturnImageFrame(ImageFrame *frame, int32_t chn)
 	{
-		vp_vse_release_frame(&m_vp_vflow_context, chn, &frame->vnode_image);
+		vp_vse_release_frame(&m_vp_vflow_context, chn, frame);
 		return;
 	}
 
@@ -577,15 +725,15 @@ namespace spdev
 		switch (module)
 		{
 		case SP_DEV_RAW:
-			vp_vin_release_frame(&m_vp_vflow_context, &frame->vnode_image);
+			vp_vin_release_frame(&m_vp_vflow_context, frame);
 			break;
 		case SP_DEV_ISP:
-			vp_isp_release_frame(&m_vp_vflow_context, &frame->vnode_image);
+			vp_isp_release_frame(&m_vp_vflow_context, frame);
 			break;
 		case SP_DEV_VSE:
 			chn = GetChnId(width, height);
 			if (chn >= 0) {
-				vp_vse_release_frame(&m_vp_vflow_context, chn, &frame->vnode_image);
+				vp_vse_release_frame(&m_vp_vflow_context, chn, frame);
 			} else {
 				LOGE_print("get chn from %dx%d failed", width, height);
 				return;
@@ -612,46 +760,49 @@ namespace spdev
 
 	int32_t VPPCamera::GetChnId(int32_t width, int32_t height)
 	{
-		if ((width == 0) || (height == 0))
-		{
-			width = GetModuleWidth();
-			height = GetModuleHeight();
-		}
-		// VSE 有多个输出通道，根据用户输入的分辨率，找到对应的通道号
-		vse_config_t *vse_config = &m_vp_vflow_context.vse_config;
-		for (int32_t i = 0; i < VSE_MAX_CHN_NUM; i++)
-		{
-
-			if ((vse_config->vse_ochn_attr[i].chn_en == CAM_TRUE)
-				&& (vse_config->vse_ochn_attr[i].target_w == width)
-				&& (vse_config->vse_ochn_attr[i].target_h == height))
-			{
-				return i;
-			}
-		}
-		return -1;
+		//if ((width == 0) || (height == 0))
+		//{
+		//	width = GetModuleWidth();
+		//	height = GetModuleHeight();
+		//}
+		//// VSE 有多个输出通道，根据用户输入的分辨率，找到对应的通道号
+		//vse_config_t *vse_config = &m_vp_vflow_context.vse_config;
+		//for (int32_t i = 0; i < VSE_MAX_CHN_NUM; i++)
+		//{
+//
+		//	if ((vse_config->vse_ochn_attr[i].chn_en == CAM_TRUE)
+		//		&& (vse_config->vse_ochn_attr[i].target_w == width)
+		//		&& (vse_config->vse_ochn_attr[i].target_h == height))
+		//	{
+		//		return i;
+		//	}
+		//}
+		//return -1;
+		return 0;
 	}
 
 	int32_t VPPCamera::GetChnIdForBind(int32_t width, int32_t height)
 	{
-		if ((width == 0) || (height == 0))
-		{
-			width = GetModuleWidth();
-			height = GetModuleHeight();
-		}
-		// VSE 有多个输出通道，根据用户输入的分辨率，找到对应的通道号
-		vse_config_t *vse_config = &m_vp_vflow_context.vse_config;
-		for (int32_t i = 0; i < VSE_MAX_CHN_NUM; i++)
-		{
-
-			if ((vse_config->vse_ochn_attr[i].chn_en == CAM_TRUE)
-				&& (vse_config->vse_ochn_attr[i].target_w == width)
-				&& (vse_config->vse_ochn_attr[i].target_h == height))
-			{
-				return i;
-			}
-		}
-		return -1;
+		//if ((width == 0) || (height == 0))
+		//{
+		//	width = GetModuleWidth();
+		//	height = GetModuleHeight();
+		//}
+		//// VSE 有多个输出通道，根据用户输入的分辨率，找到对应的通道号
+		//vse_config_t *vse_config = &m_vp_vflow_context.vse_config;
+		//for (int32_t i = 0; i < VSE_MAX_CHN_NUM; i++)
+		//{
+//
+		//	if ((vse_config->vse_ochn_attr[i].chn_en == CAM_TRUE)
+		//		&& (vse_config->vse_ochn_attr[i].target_w == width)
+		//		&& (vse_config->vse_ochn_attr[i].target_h == height))
+		//	{
+		//		return i;
+		//	}
+		//}
+		//return -1;
+	
+		return 0; // 只有一个通道0
 	}
 
 	void VPPCamera::PutChnIdForUnBind(int32_t chn_id)

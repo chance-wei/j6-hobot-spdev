@@ -7,6 +7,7 @@
 #include "isp_cfg.h"
 #include "hb_camera_data_config.h"
 #include "cam_def.h"
+#include "hbn_isp_api.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -66,10 +67,13 @@ typedef struct vp_sensor_config_s {
 	char sensor_name[128];
 	char config_file[128];
 	camera_config_t *camera_config;
-	vin_node_attr_t *vin_node_attr;
-	vin_ichn_attr_t *vin_ichn_attr;
-	vin_ochn_attr_t *vin_ochn_attr;
+	deserial_config_t *deserial_config;
+	//vin_node_attr_t *vin_node_attr;
+	//vin_ichn_attr_t *vin_ichn_attr;
+	//vin_ochn_attr_t *vin_ochn_attr;
+	vin_attr_t      *vin_attr;
 	isp_attr_t      *isp_attr;
+	isp_module_ctrl_u module_ctrl;
 	isp_ichn_attr_t *isp_ichn_attr;
 	isp_ochn_attr_t *isp_ochn_attr;
 } vp_sensor_config_t;

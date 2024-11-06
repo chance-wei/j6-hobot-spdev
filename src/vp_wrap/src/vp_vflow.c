@@ -15,6 +15,7 @@
 
 #include "vp_wrap.h"
 #include "vp_vflow.h"
+#include "hb_camera_data_config.h"
 
 int32_t vp_vflow_init(vp_vflow_contex_t *vp_vflow_contex)
 {
@@ -60,9 +61,15 @@ int32_t vp_vflow_start(vp_vflow_contex_t *vp_vflow_contex)
 	int32_t ret = 0;
 
 	if (vp_vflow_contex->vin_node_handle) {
-		ret = hbn_camera_attach_to_vin(vp_vflow_contex->cam_fd,
-							vp_vflow_contex->vin_node_handle);
-		SC_ERR_CON_EQ(ret, 0, "hbn_camera_attach_to_vin");
+		//ret = hbn_camera_attach_to_vin(vp_vflow_contex->cam_fd,
+		//					vp_vflow_contex->vin_node_handle);
+		//SC_ERR_CON_EQ(ret, 0, "hbn_camera_attach_to_vin");
+
+		ret = hbn_camera_attach_to_deserial(vp_vflow_contex->cam_fd, vp_vflow_contex->des_fd, 0);
+		SC_ERR_CON_EQ(ret, 0, "hbn_camera_attach_to_deserial failed");
+
+		ret = hbn_deserial_attach_to_vin(vp_vflow_contex->des_fd, 0, vp_vflow_contex->vin_node_handle);
+		SC_ERR_CON_EQ(ret, 0, "hbn_deserial_attach_to_vin failed");
 	}
 
 	// 绑定 vflow 和 vnode
@@ -109,7 +116,7 @@ int32_t vp_vflow_start(vp_vflow_contex_t *vp_vflow_contex)
 	SC_ERR_CON_EQ(ret, 0, "hbn_vflow_start");
 
 	SC_LOGD("successful");
-	return ret;
+	return 0;
 }
 
 int32_t vp_vflow_stop(vp_vflow_contex_t *vp_vflow_contex)
@@ -119,7 +126,8 @@ int32_t vp_vflow_stop(vp_vflow_contex_t *vp_vflow_contex)
 	SC_ERR_CON_EQ(ret, 0, "hbn_vflow_stop");
 
 	if (vp_vflow_contex->vin_node_handle) {
-		hbn_camera_detach_from_vin(vp_vflow_contex->cam_fd);
+		//hbn_camera_detach_from_vin(vp_vflow_contex->cam_fd);
+		hbn_camera_detach_from_deserial(vp_vflow_contex->cam_fd); // 缺少deserial detach from vin
 	}
 	if (vp_vflow_contex->vin_node_handle && vp_vflow_contex->isp_node_handle) {
 		hbn_vflow_unbind_vnode(vp_vflow_contex->vflow_fd,
@@ -160,7 +168,7 @@ int32_t vp_vflow_stop(vp_vflow_contex_t *vp_vflow_contex)
 		if (vp_vflow_contex->isp_node_handle && vp_vflow_contex->vse_node_handle) {
 			ret = hbn_vflow_unbind_vnode(vp_vflow_contex->vflow_fd,
 									vp_vflow_contex->isp_node_handle,
-									0,
+									1,
 									vp_vflow_contex->vse_node_handle,
 									0);
 			SC_ERR_CON_EQ(ret, 0, "hbn_vflow_unbind_vnode: isp->vse");

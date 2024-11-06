@@ -365,8 +365,6 @@ int GetBboxAndScores(
   int32_t b_wnum = shape[2];
   //int32_t b_cnum = shape[3];
 
-  assert(anchor_num_per_pixel == b_cnum / 4);
-  assert(c_batch_size == b_batch_size && c_hnum == b_hnum && c_wnum == b_wnum);
   auto box_num = b_batch_size * b_hnum * b_wnum * anchor_num_per_pixel;
 
   auto quanti_type = bbox_tensor->properties.quantiType;

@@ -438,6 +438,28 @@ void fill_image_frame_from_vnode_image(ImageFrame *frame)
 	}
 }
 
+void fill_image_frame_from_vnode_image_group(ImageFrame *frame)
+{
+	if (!frame) return;
+
+	// 从 vnode_image 填充 ImageFrame 的字段
+	frame->frame_id = frame->vnode_image_group.info.frame_id;
+	frame->image_timestamp = frame->vnode_image_group.info.timestamps;
+
+	// 填充 width, height, stride, vstride 等字段
+	frame->width = frame->vnode_image_group.buf_group.graph_group[0].width;
+	frame->height = frame->vnode_image_group.buf_group.graph_group[0].height;
+	frame->stride = frame->vnode_image_group.buf_group.graph_group[0].stride;
+	frame->vstride = frame->vnode_image_group.buf_group.graph_group[0].vstride;
+	frame->plane_count = frame->vnode_image_group.buf_group.graph_group[0].plane_cnt;
+
+	for (int i = 0; i < frame->vnode_image_group.buf_group.graph_group[0].plane_cnt; ++i) {
+		frame->pdata[i] = frame->vnode_image_group.buf_group.graph_group[0].phys_addr[i];
+		frame->data[i] = frame->vnode_image_group.buf_group.graph_group[0].virt_addr[i];
+		frame->data_size[i] = frame->vnode_image_group.buf_group.graph_group[0].size[i];
+	}
+}
+
 void fill_vnode_image_from_image_frame(ImageFrame *frame)
 {
 	if (!frame) return;
