@@ -288,7 +288,7 @@ namespace spdev
 
 		// to do 这里进行静态vse=pym配置，后续修改传值
 		pym_config->hw_id = 1;
-		pym_config->pym_mode = 1;
+		pym_config->pym_mode = 3;
 		pym_config->slot_id = 0;
 		pym_config->pingpong_ring = 0;
 		pym_config->output_buf_num = 6;
@@ -304,10 +304,10 @@ namespace spdev
 
 		pym_config->chn_ctrl.pixel_num_before_sol = DEF_PIX_NUM_BF_SOL;
 	    pym_config->chn_ctrl.invalid_head_lines = 0;
-	    pym_config->chn_ctrl.src_in_width = 3840;
-	    pym_config->chn_ctrl.src_in_height = 2160;
-	    pym_config->chn_ctrl.src_in_stride_y = 3840;
-	    pym_config->chn_ctrl.src_in_stride_uv = 3840;
+	    pym_config->chn_ctrl.src_in_width = 1920;
+	    pym_config->chn_ctrl.src_in_height = 1080;
+	    pym_config->chn_ctrl.src_in_stride_y = 1920;
+	    pym_config->chn_ctrl.src_in_stride_uv = 1920;
 	    pym_config->chn_ctrl.suffix_hb_val = DEF_SUFFIX_HB;
 	    pym_config->chn_ctrl.prefix_hb_val = DEF_PREFIX_HB;
 	    pym_config->chn_ctrl.suffix_vb_val = DEF_SUFFIX_VB;
@@ -443,7 +443,7 @@ namespace spdev
 
 		// to do 这里进行静态vse=pym配置，后续修改传值
 		pym_config->hw_id = 1;
-		pym_config->pym_mode = 1;
+		pym_config->pym_mode = 3;
 		pym_config->slot_id = 0;
 		pym_config->pingpong_ring = 0;
 		pym_config->output_buf_num = 6;
@@ -459,10 +459,10 @@ namespace spdev
 
 		pym_config->chn_ctrl.pixel_num_before_sol = DEF_PIX_NUM_BF_SOL;
 	    pym_config->chn_ctrl.invalid_head_lines = 0;
-	    pym_config->chn_ctrl.src_in_width = 3840;
-	    pym_config->chn_ctrl.src_in_height = 2160;
-	    pym_config->chn_ctrl.src_in_stride_y = 3840;
-	    pym_config->chn_ctrl.src_in_stride_uv = 3840;
+	    pym_config->chn_ctrl.src_in_width = 1920;
+	    pym_config->chn_ctrl.src_in_height = 1080;
+	    pym_config->chn_ctrl.src_in_stride_y = 1920;
+	    pym_config->chn_ctrl.src_in_stride_uv = 1920;
 	    pym_config->chn_ctrl.suffix_hb_val = DEF_SUFFIX_HB;
 	    pym_config->chn_ctrl.prefix_hb_val = DEF_PREFIX_HB;
 	    pym_config->chn_ctrl.suffix_vb_val = DEF_SUFFIX_VB;
@@ -704,7 +704,6 @@ namespace spdev
 			return -1;
 		}
 
-		fill_image_frame_from_vnode_image(frame);
 		// 计算丢帧数和更新上次帧id
 		frame->lost_image_num = frame->frame_id - m_last_frame_id - 1;
 		m_last_frame_id = frame->frame_id;
