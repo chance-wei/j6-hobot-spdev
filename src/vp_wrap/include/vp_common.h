@@ -134,7 +134,6 @@ typedef struct vp_vflow_contex_s {
 	hbn_vnode_handle_t vin_node_handle;
 	hbn_vnode_handle_t isp_node_handle;
 	int32_t vse_chn_num;
-	pym_cfg_t pym_config;
 	osd_user_info_t osd_info;
 	gdc_user_info_t gdc_info;
 	hbn_vnode_handle_t vse_node_handle;

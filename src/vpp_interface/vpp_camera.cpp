@@ -23,8 +23,53 @@
 
 #include "vpp_camera.h"
 
+//static board_camera_info_t camera_info[MAX_CAMERAS] = {
+//	{1, 0x2, 0},
+//	{1, 0x3, 1},
+//	{1, 0x4, 0},
+//};
+//board_camera_info_t camera_info[MAX_CAMERAS] = {
+//	{
+//		.enable = 1,
+//		.i2c_bus = 0x2,
+//		.mipi_host = 0,
+//	},
+//
+//	[1] = {
+//		.enable = 1,
+//		.i2c_bus = 0x3,
+//		.mipi_host = 1,
+//	},
+//
+//	[2] = {
+//		.enable = 1,
+//		.i2c_bus = 0x4,
+//		.mipi_host = 0x4,
+//	},
+//};
+
 namespace spdev
 {
+	static board_camera_info_t camera_info[MAX_CAMERAS] = {
+		[0] = {
+			.enable = 1,
+			.i2c_bus = 0x2,
+			.mipi_host = 0,
+		},
+
+		[1] = {
+			.enable = 1,
+			.i2c_bus = 0x3,
+			.mipi_host = 1,
+		},
+
+		[2] = {
+			.enable = 1,
+			.i2c_bus = 0x4,
+			.mipi_host = 0x4,
+		},
+	};
+
 	static cJSON *open_json_file(const char *path)
 	{
 		FILE *fp = fopen(path, "r");
@@ -187,11 +232,13 @@ namespace spdev
 		int sensor_width = -1, sensor_height = -1, sensor_fps = -1;
 		int vse_chn = 0, vse_chn_en = 0;
 		camera_config_t *camera_config = NULL;
-		isp_ichn_attr_t *isp_ichn_attr = NULL;
+		isp_attr_t *isp_attr = NULL;
+		vin_attr_t *vin_attr = NULL;
+		vin_ochn_attr_t *vin_ochn_attr = NULL;
 		pym_cfg_t *pym_config = NULL; // vse_config_t *vse_config = NULL;
 		vp_csi_config_t csi_config = {0};
 		int32_t input_width = 0, input_height = 0;
-		board_camera_info_t camera_info[MAX_CAMERAS];
+		//board_camera_info_t camera_info[MAX_CAMERAS];
 
 		if(parameters != NULL)
 		{
@@ -201,7 +248,7 @@ namespace spdev
 		}
 		memset(vp_vflow_contex, 0, sizeof(vp_vflow_contex_t));
 		printf("set camera fps: %d,width: %d,height: %d\n",sensor_fps,sensor_width,sensor_height);
-		memset(camera_info, 0, sizeof(camera_info));
+		//memset(camera_info, 0, sizeof(camera_info));
 		/* to do 这里不需要解析json，需要删掉
 		*ret = parse_config("/etc/board_config.json", camera_info);
 		*if (ret != 0) {
@@ -224,7 +271,7 @@ namespace spdev
 		// 每个sensor会支持不同的分辨率，需要根据传入的 parameters 选择 sensor 配置
 		//if (video_index >= 0 && video_index < MAX_CAMERAS) {
 		//	vp_vflow_contex->mipi_csi_rx_index = camera_info[video_index].mipi_host;
-		//	vp_vflow_contex->sensor_config =
+		//	vp_vflow_contex->sensor_config = 
 		//		vp_get_sensor_config_by_mipi_host(camera_info[video_index].mipi_host, &csi_config,sensor_height,sensor_width,sensor_fps);
 		//} else if (video_index == -1) {
 		//	for (int i = 0; i < MAX_CAMERAS; i++) {
@@ -245,15 +292,47 @@ namespace spdev
 		vp_vflow_contex->mipi_csi_rx_index = camera_info[0].mipi_host;
 		vp_vflow_contex->sensor_config = vp_get_sensor_config_by_mipi_host(camera_info[0].mipi_host, &csi_config,sensor_height,sensor_width,sensor_fps);
 
-		// 2. Setting Vse channel
-		pym_config = &vp_vflow_contex->pym_config;
-		isp_ichn_attr = vp_vflow_contex->sensor_config->isp_ichn_attr;
-		vp_vflow_contex->mclk_is_not_configed = csi_config.mclk_is_not_configed;
 
-		input_width = isp_ichn_attr->input_crop_cfg.rect.width;
-		input_height = isp_ichn_attr->input_crop_cfg.rect.height;
-		SC_LOGD("VSE: input_width: %d input_height: %d",
-			input_width, input_height);
+		//vin_attr = vp_vflow_contex->sensor_config->vin_attr;
+		//pym_config = vp_vflow_contex->sensor_config->pym_config;
+		//isp_attr = vp_vflow_contex->sensor_config->isp_attr;
+		//vp_vflow_contex->mclk_is_not_configed = csi_config.mclk_is_not_configed;
+	//
+		//// 1. setting cam args
+		//camera_config->width = sensor_width;
+		//camera_config->height = sensor_height;
+		//if (sensor_fps > 0)
+		//	camera_config->fps = sensor_fps;
+//
+		//// 2. setting vin args
+		//vin_attr->vin_ichn_attr.height = sensor_height;
+		//vin_attr->vin_ichn_attr.width = sensor_width;
+		//vin_attr->vin_ochn_attr[VIN_MAIN_FRAME].roi_attr.roi_width = sensor_width;
+		//vin_attr->vin_ochn_attr[VIN_MAIN_FRAME].roi_attr.roi_height = sensor_height;
+//
+		//// 3. setting isp args
+		//isp_attr->size.width = sensor_width;
+		//isp_attr->size.height = sensor_height;
+//
+		//// 4. Setting Vse channel
+		//input_width = sensor_width;
+		//input_height = sensor_height;
+		//SC_LOGD("VSE: input_width: %d input_height: %d",
+		//	input_width, input_height);
+//
+		//pym_config->chn_ctrl.src_in_width = input_width;
+	    //pym_config->chn_ctrl.src_in_height = input_height;
+	    //pym_config->chn_ctrl.src_in_stride_y = input_width;
+	    //pym_config->chn_ctrl.src_in_stride_uv = input_width;
+//
+//
+		//pym_config->chn_ctrl.ds_roi_info[0].region_width = 1920;
+		//pym_config->chn_ctrl.ds_roi_info[0].region_height = 1080;
+		//pym_config->chn_ctrl.ds_roi_info[0].wstride_uv = 1920;
+		//pym_config->chn_ctrl.ds_roi_info[0].wstride_y = 1920;
+		//pym_config->chn_ctrl.ds_roi_info[0].out_width = 1920;
+		//pym_config->chn_ctrl.ds_roi_info[0].out_height = 1080;
+		//pym_config->chn_ctrl.ds_roi_info[0].vstride = pym_config->chn_ctrl.ds_roi_info[0].out_height;
 
 		//vse_config->vse_ichn_attr.width = input_width;
 		//vse_config->vse_ichn_attr.height = input_height;
@@ -287,66 +366,66 @@ namespace spdev
 		//}
 
 		// to do 这里进行静态vse=pym配置，后续修改传值
-		pym_config->hw_id = 1;
-		pym_config->pym_mode = 3;
-		pym_config->slot_id = 0;
-		pym_config->pingpong_ring = 0;
-		pym_config->output_buf_num = 6;
-		pym_config->fb_buf_num = 2;
-		pym_config->timeout = 0;
-		pym_config->threshold_time = 0;
-		pym_config->layer_num_trans_next = 0;
-		pym_config->layer_num_share_prev = -1;
-		pym_config->out_buf_noinvalid = 1;
-		pym_config->out_buf_noncached = 0;
-		pym_config->in_buf_noclean = 1;
-		pym_config->in_buf_noncached = 0;
-
-		pym_config->chn_ctrl.pixel_num_before_sol = DEF_PIX_NUM_BF_SOL;
-	    pym_config->chn_ctrl.invalid_head_lines = 0;
-	    pym_config->chn_ctrl.src_in_width = 1920;
-	    pym_config->chn_ctrl.src_in_height = 1080;
-	    pym_config->chn_ctrl.src_in_stride_y = 1920;
-	    pym_config->chn_ctrl.src_in_stride_uv = 1920;
-	    pym_config->chn_ctrl.suffix_hb_val = DEF_SUFFIX_HB;
-	    pym_config->chn_ctrl.prefix_hb_val = DEF_PREFIX_HB;
-	    pym_config->chn_ctrl.suffix_vb_val = DEF_SUFFIX_VB;
-	    pym_config->chn_ctrl.prefix_vb_val = DEF_PREFIX_VB;
-
-	    pym_config->chn_ctrl.pre_int_set_y[PRE_INT_0_SET] = 0;
-	    pym_config->chn_ctrl.pre_int_set_y[PRE_INT_1_SET] = 0;
-	    pym_config->chn_ctrl.pre_int_set_y[PRE_INT_2_SET] = 0;
-	    pym_config->chn_ctrl.pre_int_set_y[PRE_INT_3_SET] = 0;
-	    pym_config->chn_ctrl.pre_int_set_y[PRE_INT_4_SET] = 0;
-	    pym_config->chn_ctrl.pre_int_set_y[PRE_INT_5_SET] = 0;
-	    pym_config->chn_ctrl.pre_int_set_y[PRE_INT_6_SET] = 0;
-	    pym_config->chn_ctrl.pre_int_set_y[PRE_INT_7_SET] = 0;
-
-	    pym_config->chn_ctrl.pre_int_set_uv[PRE_INT_0_SET] = 0;
-	    pym_config->chn_ctrl.pre_int_set_uv[PRE_INT_1_SET] = 0;
-	    pym_config->chn_ctrl.pre_int_set_uv[PRE_INT_2_SET] = 0;
-	    pym_config->chn_ctrl.pre_int_set_uv[PRE_INT_3_SET] = 0;
-	    pym_config->chn_ctrl.pre_int_set_uv[PRE_INT_4_SET] = 0;
-	    pym_config->chn_ctrl.pre_int_set_uv[PRE_INT_5_SET] = 0;
-	    pym_config->chn_ctrl.pre_int_set_uv[PRE_INT_6_SET] = 0;
-	    pym_config->chn_ctrl.pre_int_set_uv[PRE_INT_7_SET] = 0;
-
-	    pym_config->chn_ctrl.ds_roi_en = 1;
-	    pym_config->chn_ctrl.bl_max_layer_en = DEF_BL_MAX_EN;
-	    pym_config->chn_ctrl.ds_roi_uv_bypass = 0;
-
-		pym_config->chn_ctrl.ds_roi_sel[0] = 0;
-		pym_config->chn_ctrl.ds_roi_layer[0] = 0;
-		pym_config->chn_ctrl.ds_roi_info[0].start_left = 0;
-		pym_config->chn_ctrl.ds_roi_info[0].start_top = 0;
-		pym_config->chn_ctrl.ds_roi_info[0].region_width = 1920;
-		pym_config->chn_ctrl.ds_roi_info[0].region_height = 1080;
-		pym_config->chn_ctrl.ds_roi_info[0].wstride_uv = 1920;
-		pym_config->chn_ctrl.ds_roi_info[0].wstride_y = 1920;
-		pym_config->chn_ctrl.ds_roi_info[0].out_width = 1920;
-		pym_config->chn_ctrl.ds_roi_info[0].out_height = 1080;
-		pym_config->chn_ctrl.ds_roi_info[0].vstride = pym_config->chn_ctrl.ds_roi_info[0].out_height;
-		pym_config->magicNumber = MAGIC_NUMBER;
+		//pym_config->hw_id = 1;
+		//pym_config->pym_mode = 3;
+		//pym_config->slot_id = 0;
+		//pym_config->pingpong_ring = 0;
+		//pym_config->output_buf_num = 6;
+		//pym_config->fb_buf_num = 2;
+		//pym_config->timeout = 0;
+		//pym_config->threshold_time = 0;
+		//pym_config->layer_num_trans_next = 0;
+		//pym_config->layer_num_share_prev = -1;
+		//pym_config->out_buf_noinvalid = 1;
+		//pym_config->out_buf_noncached = 0;
+		//pym_config->in_buf_noclean = 1;
+		//pym_config->in_buf_noncached = 0;
+//
+		//pym_config->chn_ctrl.pixel_num_before_sol = DEF_PIX_NUM_BF_SOL;
+	    //pym_config->chn_ctrl.invalid_head_lines = 0;
+	    //pym_config->chn_ctrl.src_in_width = 1920;
+	    //pym_config->chn_ctrl.src_in_height = 1080;
+	    //pym_config->chn_ctrl.src_in_stride_y = 1920;
+	    //pym_config->chn_ctrl.src_in_stride_uv = 1920;
+	    //pym_config->chn_ctrl.suffix_hb_val = DEF_SUFFIX_HB;
+	    //pym_config->chn_ctrl.prefix_hb_val = DEF_PREFIX_HB;
+	    //pym_config->chn_ctrl.suffix_vb_val = DEF_SUFFIX_VB;
+	    //pym_config->chn_ctrl.prefix_vb_val = DEF_PREFIX_VB;
+//
+	    //pym_config->chn_ctrl.pre_int_set_y[PRE_INT_0_SET] = 0;
+	    //pym_config->chn_ctrl.pre_int_set_y[PRE_INT_1_SET] = 0;
+	    //pym_config->chn_ctrl.pre_int_set_y[PRE_INT_2_SET] = 0;
+	    //pym_config->chn_ctrl.pre_int_set_y[PRE_INT_3_SET] = 0;
+	    //pym_config->chn_ctrl.pre_int_set_y[PRE_INT_4_SET] = 0;
+	    //pym_config->chn_ctrl.pre_int_set_y[PRE_INT_5_SET] = 0;
+	    //pym_config->chn_ctrl.pre_int_set_y[PRE_INT_6_SET] = 0;
+	    //pym_config->chn_ctrl.pre_int_set_y[PRE_INT_7_SET] = 0;
+//
+	    //pym_config->chn_ctrl.pre_int_set_uv[PRE_INT_0_SET] = 0;
+	    //pym_config->chn_ctrl.pre_int_set_uv[PRE_INT_1_SET] = 0;
+	    //pym_config->chn_ctrl.pre_int_set_uv[PRE_INT_2_SET] = 0;
+	    //pym_config->chn_ctrl.pre_int_set_uv[PRE_INT_3_SET] = 0;
+	    //pym_config->chn_ctrl.pre_int_set_uv[PRE_INT_4_SET] = 0;
+	    //pym_config->chn_ctrl.pre_int_set_uv[PRE_INT_5_SET] = 0;
+	    //pym_config->chn_ctrl.pre_int_set_uv[PRE_INT_6_SET] = 0;
+	    //pym_config->chn_ctrl.pre_int_set_uv[PRE_INT_7_SET] = 0;
+//
+	    //pym_config->chn_ctrl.ds_roi_en = 1;
+	    //pym_config->chn_ctrl.bl_max_layer_en = DEF_BL_MAX_EN;
+	    //pym_config->chn_ctrl.ds_roi_uv_bypass = 0;
+//
+		//pym_config->chn_ctrl.ds_roi_sel[0] = 0;
+		//pym_config->chn_ctrl.ds_roi_layer[0] = 0;
+		//pym_config->chn_ctrl.ds_roi_info[0].start_left = 0;
+		//pym_config->chn_ctrl.ds_roi_info[0].start_top = 0;
+		//pym_config->chn_ctrl.ds_roi_info[0].region_width = 1920;
+		//pym_config->chn_ctrl.ds_roi_info[0].region_height = 1080;
+		//pym_config->chn_ctrl.ds_roi_info[0].wstride_uv = 1920;
+		//pym_config->chn_ctrl.ds_roi_info[0].wstride_y = 1920;
+		//pym_config->chn_ctrl.ds_roi_info[0].out_width = 1920;
+		//pym_config->chn_ctrl.ds_roi_info[0].out_height = 1080;
+		//pym_config->chn_ctrl.ds_roi_info[0].vstride = pym_config->chn_ctrl.ds_roi_info[0].out_height;
+		//pym_config->magicNumber = MAGIC_NUMBER;
 		
 
 		m_width = input_width;
@@ -367,7 +446,7 @@ namespace spdev
 
 		memset(vp_vflow_contex, 0, sizeof(vp_vflow_contex_t));
 
-		pym_config = &vp_vflow_contex->pym_config; // vse_config = &vp_vflow_contex->vse_config;
+		pym_config = vp_vflow_contex->sensor_config->pym_config; // vse_config = &vp_vflow_contex->vse_config;
 
 		//vse_config->vse_ichn_attr.width = src_width;
 		//vse_config->vse_ichn_attr.height = src_height;
@@ -442,66 +521,66 @@ namespace spdev
 		//}
 
 		// to do 这里进行静态vse=pym配置，后续修改传值
-		pym_config->hw_id = 1;
-		pym_config->pym_mode = 3;
-		pym_config->slot_id = 0;
-		pym_config->pingpong_ring = 0;
-		pym_config->output_buf_num = 6;
-		pym_config->fb_buf_num = 2;
-		pym_config->timeout = 0;
-		pym_config->threshold_time = 0;
-		pym_config->layer_num_trans_next = 0;
-		pym_config->layer_num_share_prev = -1;
-		pym_config->out_buf_noinvalid = 1;
-		pym_config->out_buf_noncached = 0;
-		pym_config->in_buf_noclean = 1;
-		pym_config->in_buf_noncached = 0;
-
-		pym_config->chn_ctrl.pixel_num_before_sol = DEF_PIX_NUM_BF_SOL;
-	    pym_config->chn_ctrl.invalid_head_lines = 0;
-	    pym_config->chn_ctrl.src_in_width = 1920;
-	    pym_config->chn_ctrl.src_in_height = 1080;
-	    pym_config->chn_ctrl.src_in_stride_y = 1920;
-	    pym_config->chn_ctrl.src_in_stride_uv = 1920;
-	    pym_config->chn_ctrl.suffix_hb_val = DEF_SUFFIX_HB;
-	    pym_config->chn_ctrl.prefix_hb_val = DEF_PREFIX_HB;
-	    pym_config->chn_ctrl.suffix_vb_val = DEF_SUFFIX_VB;
-	    pym_config->chn_ctrl.prefix_vb_val = DEF_PREFIX_VB;
-
-	    pym_config->chn_ctrl.pre_int_set_y[PRE_INT_0_SET] = 0;
-	    pym_config->chn_ctrl.pre_int_set_y[PRE_INT_1_SET] = 0;
-	    pym_config->chn_ctrl.pre_int_set_y[PRE_INT_2_SET] = 0;
-	    pym_config->chn_ctrl.pre_int_set_y[PRE_INT_3_SET] = 0;
-	    pym_config->chn_ctrl.pre_int_set_y[PRE_INT_4_SET] = 0;
-	    pym_config->chn_ctrl.pre_int_set_y[PRE_INT_5_SET] = 0;
-	    pym_config->chn_ctrl.pre_int_set_y[PRE_INT_6_SET] = 0;
-	    pym_config->chn_ctrl.pre_int_set_y[PRE_INT_7_SET] = 0;
-
-	    pym_config->chn_ctrl.pre_int_set_uv[PRE_INT_0_SET] = 0;
-	    pym_config->chn_ctrl.pre_int_set_uv[PRE_INT_1_SET] = 0;
-	    pym_config->chn_ctrl.pre_int_set_uv[PRE_INT_2_SET] = 0;
-	    pym_config->chn_ctrl.pre_int_set_uv[PRE_INT_3_SET] = 0;
-	    pym_config->chn_ctrl.pre_int_set_uv[PRE_INT_4_SET] = 0;
-	    pym_config->chn_ctrl.pre_int_set_uv[PRE_INT_5_SET] = 0;
-	    pym_config->chn_ctrl.pre_int_set_uv[PRE_INT_6_SET] = 0;
-	    pym_config->chn_ctrl.pre_int_set_uv[PRE_INT_7_SET] = 0;
-
-	    pym_config->chn_ctrl.ds_roi_en = 1;
-	    pym_config->chn_ctrl.bl_max_layer_en = DEF_BL_MAX_EN;
-	    pym_config->chn_ctrl.ds_roi_uv_bypass = 0;
-
-		pym_config->chn_ctrl.ds_roi_sel[0] = 0;
-		pym_config->chn_ctrl.ds_roi_layer[0] = 0;
-		pym_config->chn_ctrl.ds_roi_info[0].start_left = 0;
-		pym_config->chn_ctrl.ds_roi_info[0].start_top = 0;
-		pym_config->chn_ctrl.ds_roi_info[0].region_width = 1920;
-		pym_config->chn_ctrl.ds_roi_info[0].region_height = 1080;
-		pym_config->chn_ctrl.ds_roi_info[0].wstride_uv = 1920;
-		pym_config->chn_ctrl.ds_roi_info[0].wstride_y = 1920;
-		pym_config->chn_ctrl.ds_roi_info[0].out_width = 1920;
-		pym_config->chn_ctrl.ds_roi_info[0].out_height = 1080;
-		pym_config->chn_ctrl.ds_roi_info[0].vstride = pym_config->chn_ctrl.ds_roi_info[0].out_height;
-		pym_config->magicNumber = MAGIC_NUMBER;
+		//pym_config->hw_id = 1;
+		//pym_config->pym_mode = 3;
+		//pym_config->slot_id = 0;
+		//pym_config->pingpong_ring = 0;
+		//pym_config->output_buf_num = 6;
+		//pym_config->fb_buf_num = 2;
+		//pym_config->timeout = 0;
+		//pym_config->threshold_time = 0;
+		//pym_config->layer_num_trans_next = 0;
+		//pym_config->layer_num_share_prev = -1;
+		//pym_config->out_buf_noinvalid = 1;
+		//pym_config->out_buf_noncached = 0;
+		//pym_config->in_buf_noclean = 1;
+		//pym_config->in_buf_noncached = 0;
+//
+		//pym_config->chn_ctrl.pixel_num_before_sol = DEF_PIX_NUM_BF_SOL;
+	    //pym_config->chn_ctrl.invalid_head_lines = 0;
+	    //pym_config->chn_ctrl.src_in_width = 1920;
+	    //pym_config->chn_ctrl.src_in_height = 1080;
+	    //pym_config->chn_ctrl.src_in_stride_y = 1920;
+	    //pym_config->chn_ctrl.src_in_stride_uv = 1920;
+	    //pym_config->chn_ctrl.suffix_hb_val = DEF_SUFFIX_HB;
+	    //pym_config->chn_ctrl.prefix_hb_val = DEF_PREFIX_HB;
+	    //pym_config->chn_ctrl.suffix_vb_val = DEF_SUFFIX_VB;
+	    //pym_config->chn_ctrl.prefix_vb_val = DEF_PREFIX_VB;
+//
+	    //pym_config->chn_ctrl.pre_int_set_y[PRE_INT_0_SET] = 0;
+	    //pym_config->chn_ctrl.pre_int_set_y[PRE_INT_1_SET] = 0;
+	    //pym_config->chn_ctrl.pre_int_set_y[PRE_INT_2_SET] = 0;
+	    //pym_config->chn_ctrl.pre_int_set_y[PRE_INT_3_SET] = 0;
+	    //pym_config->chn_ctrl.pre_int_set_y[PRE_INT_4_SET] = 0;
+	    //pym_config->chn_ctrl.pre_int_set_y[PRE_INT_5_SET] = 0;
+	    //pym_config->chn_ctrl.pre_int_set_y[PRE_INT_6_SET] = 0;
+	    //pym_config->chn_ctrl.pre_int_set_y[PRE_INT_7_SET] = 0;
+//
+	    //pym_config->chn_ctrl.pre_int_set_uv[PRE_INT_0_SET] = 0;
+	    //pym_config->chn_ctrl.pre_int_set_uv[PRE_INT_1_SET] = 0;
+	    //pym_config->chn_ctrl.pre_int_set_uv[PRE_INT_2_SET] = 0;
+	    //pym_config->chn_ctrl.pre_int_set_uv[PRE_INT_3_SET] = 0;
+	    //pym_config->chn_ctrl.pre_int_set_uv[PRE_INT_4_SET] = 0;
+	    //pym_config->chn_ctrl.pre_int_set_uv[PRE_INT_5_SET] = 0;
+	    //pym_config->chn_ctrl.pre_int_set_uv[PRE_INT_6_SET] = 0;
+	    //pym_config->chn_ctrl.pre_int_set_uv[PRE_INT_7_SET] = 0;
+//
+	    //pym_config->chn_ctrl.ds_roi_en = 1;
+	    //pym_config->chn_ctrl.bl_max_layer_en = DEF_BL_MAX_EN;
+	    //pym_config->chn_ctrl.ds_roi_uv_bypass = 0;
+//
+		//pym_config->chn_ctrl.ds_roi_sel[0] = 0;
+		//pym_config->chn_ctrl.ds_roi_layer[0] = 0;
+		//pym_config->chn_ctrl.ds_roi_info[0].start_left = 0;
+		//pym_config->chn_ctrl.ds_roi_info[0].start_top = 0;
+		//pym_config->chn_ctrl.ds_roi_info[0].region_width = 1920;
+		//pym_config->chn_ctrl.ds_roi_info[0].region_height = 1080;
+		//pym_config->chn_ctrl.ds_roi_info[0].wstride_uv = 1920;
+		//pym_config->chn_ctrl.ds_roi_info[0].wstride_y = 1920;
+		//pym_config->chn_ctrl.ds_roi_info[0].out_width = 1920;
+		//pym_config->chn_ctrl.ds_roi_info[0].out_height = 1080;
+		//pym_config->chn_ctrl.ds_roi_info[0].vstride = pym_config->chn_ctrl.ds_roi_info[0].out_height;
+		//pym_config->magicNumber = MAGIC_NUMBER;
 		return ret;
 	}
 

@@ -31,7 +31,7 @@ enum VPS_PROCESS_MODE {
     VPS_SCALE_ROTATE_CROP = 4,
 };
 
-#define MAX_CAMERAS 4
+#define MAX_CAMERAS 3
 typedef struct {
     int enable;
     int i2c_bus;

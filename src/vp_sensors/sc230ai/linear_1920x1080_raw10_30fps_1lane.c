@@ -1,4 +1,5 @@
 #include "vp_sensors.h"
+#include "vp_vse.h"
 
 #define SENSOR_WIDTH  1920
 #define SENSOR_HEIGHT  1080
@@ -428,6 +429,141 @@ static vin_attr_t sc230ai_vin_attr = {
 	.magicNumber = MAGIC_NUMBER,
 };
 
+
+
+//		pym_config->hw_id = 1;
+//		pym_config->pym_mode = 3;
+//		pym_config->slot_id = 0;
+//		pym_config->pingpong_ring = 0;
+//		pym_config->output_buf_num = 6;
+//		pym_config->fb_buf_num = 2;
+//		pym_config->timeout = 0;
+//		pym_config->threshold_time = 0;
+//		pym_config->layer_num_trans_next = 0;
+//		pym_config->layer_num_share_prev = -1;
+//		pym_config->out_buf_noinvalid = 1;
+//		pym_config->out_buf_noncached = 0;
+//		pym_config->in_buf_noclean = 1;
+//		pym_config->in_buf_noncached = 0;
+//
+//		pym_config->chn_ctrl.pixel_num_before_sol = DEF_PIX_NUM_BF_SOL;
+//	    pym_config->chn_ctrl.invalid_head_lines = 0;
+//	    pym_config->chn_ctrl.src_in_width = 1920;
+//	    pym_config->chn_ctrl.src_in_height = 1080;
+//	    pym_config->chn_ctrl.src_in_stride_y = 1920;
+//	    pym_config->chn_ctrl.src_in_stride_uv = 1920;
+//	    pym_config->chn_ctrl.suffix_hb_val = DEF_SUFFIX_HB;
+//	    pym_config->chn_ctrl.prefix_hb_val = DEF_PREFIX_HB;
+//	    pym_config->chn_ctrl.suffix_vb_val = DEF_SUFFIX_VB;
+//	    pym_config->chn_ctrl.prefix_vb_val = DEF_PREFIX_VB;
+//
+//	    pym_config->chn_ctrl.pre_int_set_y[PRE_INT_0_SET] = 0;
+//	    pym_config->chn_ctrl.pre_int_set_y[PRE_INT_1_SET] = 0;
+//	    pym_config->chn_ctrl.pre_int_set_y[PRE_INT_2_SET] = 0;
+//	    pym_config->chn_ctrl.pre_int_set_y[PRE_INT_3_SET] = 0;
+//	    pym_config->chn_ctrl.pre_int_set_y[PRE_INT_4_SET] = 0;
+//	    pym_config->chn_ctrl.pre_int_set_y[PRE_INT_5_SET] = 0;
+//	    pym_config->chn_ctrl.pre_int_set_y[PRE_INT_6_SET] = 0;
+//	    pym_config->chn_ctrl.pre_int_set_y[PRE_INT_7_SET] = 0;
+//
+//	    pym_config->chn_ctrl.pre_int_set_uv[PRE_INT_0_SET] = 0;
+//	    pym_config->chn_ctrl.pre_int_set_uv[PRE_INT_1_SET] = 0;
+//	    pym_config->chn_ctrl.pre_int_set_uv[PRE_INT_2_SET] = 0;
+//	    pym_config->chn_ctrl.pre_int_set_uv[PRE_INT_3_SET] = 0;
+//	    pym_config->chn_ctrl.pre_int_set_uv[PRE_INT_4_SET] = 0;
+//	    pym_config->chn_ctrl.pre_int_set_uv[PRE_INT_5_SET] = 0;
+//	    pym_config->chn_ctrl.pre_int_set_uv[PRE_INT_6_SET] = 0;
+//	    pym_config->chn_ctrl.pre_int_set_uv[PRE_INT_7_SET] = 0;
+//
+//	    pym_config->chn_ctrl.ds_roi_en = 1;
+//	    pym_config->chn_ctrl.bl_max_layer_en = DEF_BL_MAX_EN;
+//	    pym_config->chn_ctrl.ds_roi_uv_bypass = 0;
+//
+//		pym_config->chn_ctrl.ds_roi_sel[0] = 0;
+//		pym_config->chn_ctrl.ds_roi_layer[0] = 0;
+//		pym_config->chn_ctrl.ds_roi_info[0].start_left = 0;
+//		pym_config->chn_ctrl.ds_roi_info[0].start_top = 0;
+//		pym_config->chn_ctrl.ds_roi_info[0].region_width = 1920;
+//		pym_config->chn_ctrl.ds_roi_info[0].region_height = 1080;
+//		pym_config->chn_ctrl.ds_roi_info[0].wstride_uv = 1920;
+//		pym_config->chn_ctrl.ds_roi_info[0].wstride_y = 1920;
+//		pym_config->chn_ctrl.ds_roi_info[0].out_width = 1920;
+//		pym_config->chn_ctrl.ds_roi_info[0].out_height = 1080;
+//		pym_config->chn_ctrl.ds_roi_info[0].vstride = pym_config->chn_ctrl.ds_roi_info[0].out_height;
+//		pym_config->magicNumber = MAGIC_NUMBER;
+
+static pym_cfg_t sc230ai_pym_config = {
+		.hw_id = 1,
+		.pym_mode = 3,
+		.slot_id = 0,
+		.pingpong_ring = 0,
+		.output_buf_num = 6,
+		.fb_buf_num = 2,
+		.timeout = 0,
+		.threshold_time = 0,
+		.layer_num_trans_next = 0,
+		.layer_num_share_prev = -1,
+		.out_buf_noinvalid = 1,
+		.out_buf_noncached = 0,
+		.in_buf_noclean = 1,
+		.in_buf_noncached = 0,
+		.chn_ctrl = {
+			.pixel_num_before_sol = DEF_PIX_NUM_BF_SOL,
+	    	.invalid_head_lines = 0,
+	    	.src_in_width = 1920,
+	    	.src_in_height = 1080,
+	    	.src_in_stride_y = 1920,
+	    	.src_in_stride_uv = 1920,
+	    	.suffix_hb_val = DEF_SUFFIX_HB,
+	    	.prefix_hb_val = DEF_PREFIX_HB,
+	    	.suffix_vb_val = DEF_SUFFIX_VB,
+	    	.prefix_vb_val = DEF_PREFIX_VB,
+	    	.ds_roi_en = 1,
+	    	.bl_max_layer_en = DEF_BL_MAX_EN,
+	    	.ds_roi_uv_bypass = 0,
+			.pre_int_set_y = {
+				[PRE_INT_0_SET] = 0,
+	    		[PRE_INT_1_SET] = 0,
+	    		[PRE_INT_2_SET] = 0,
+	    		[PRE_INT_3_SET] = 0,
+	    		[PRE_INT_4_SET] = 0,
+	    		[PRE_INT_5_SET] = 0,
+	    		[PRE_INT_6_SET] = 0,
+	    		[PRE_INT_7_SET] = 0,
+			},
+			.pre_int_set_uv = {
+	    		[PRE_INT_0_SET] = 0,
+	    		[PRE_INT_1_SET] = 0,
+	    		[PRE_INT_2_SET] = 0,
+	    		[PRE_INT_3_SET] = 0,
+	    		[PRE_INT_4_SET] = 0,
+	    		[PRE_INT_5_SET] = 0,
+	    		[PRE_INT_6_SET] = 0,
+	    		[PRE_INT_7_SET] = 0,
+			},
+			.ds_roi_sel = {
+				[0] = 0,
+			},
+			.ds_roi_layer = {
+				[0] = 0,
+			},
+			.ds_roi_info = {
+				[0] = {
+					.start_left = 0,
+					.start_top = 0,
+					.region_width = 1920,
+					.region_height = 1080,
+					.wstride_uv = 1920,
+					.wstride_y = 1920,
+					.out_width = 1920,
+					.out_height = 1080,
+					.vstride = 1080, //.out_height,
+				},
+			},
+		},
+	.magicNumber = MAGIC_NUMBER,
+};
+
 vp_sensor_config_t sc230ai_linear_1920x1080_raw10_30fps_1lane = {
 	.chip_id_reg = 0x3107,
 	.chip_id = 0xcb34,
@@ -448,6 +584,7 @@ vp_sensor_config_t sc230ai_linear_1920x1080_raw10_30fps_1lane = {
 	//.vin_ichn_attr = &sc230ai_vin_ichn_attr,
 	//.vin_node_attr = &sc230ai_vin_node_attr,
 	//.vin_ochn_attr = &sc230ai_vin_ochn_attr,
+	.pym_config    = &sc230ai_pym_config,
 	.isp_attr      = &sc230ai_isp_attr,
 	.isp_ichn_attr = &sc230ai_isp_ichn_attr,
 	.isp_ochn_attr = &sc230ai_isp_ochn_attr,

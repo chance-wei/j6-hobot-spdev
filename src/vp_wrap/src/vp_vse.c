@@ -23,7 +23,7 @@ int32_t vp_vse_init(vp_vflow_contex_t *vp_vflow_contex)
 	hbn_vnode_handle_t vnode_magic_id;
 	hbn_buf_alloc_attr_t alloc_attr;
 	//coverity[misra_c_2012_rule_11_5_violation:SUPPRESS], ## violation reason SYSSW_V_11.5.04
-	pym_cfg = (pym_cfg_t *) &vp_vflow_contex->pym_config;
+	pym_cfg = (pym_cfg_t *)vp_vflow_contex->sensor_config->pym_config;
 	ret = hbn_vnode_open(HB_PYM, pym_cfg->hw_id, AUTO_ALLOC_ID, &vnode_magic_id);
 	if (ret < 0) {
 		//coverity[misra_c_2012_rule_15_1_violation:SUPPRESS], ## violation reason SYSSW_V_15.1.01
