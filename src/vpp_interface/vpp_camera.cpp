@@ -292,47 +292,96 @@ namespace spdev
 		vp_vflow_contex->mipi_csi_rx_index = camera_info[0].mipi_host;
 		vp_vflow_contex->sensor_config = vp_get_sensor_config_by_mipi_host(camera_info[0].mipi_host, &csi_config,sensor_height,sensor_width,sensor_fps);
 
+		vin_attr = vp_vflow_contex->sensor_config->vin_attr;
+		pym_config = vp_vflow_contex->sensor_config->pym_config;
+		isp_attr = vp_vflow_contex->sensor_config->isp_attr;
+		camera_config = vp_vflow_contex->sensor_config->camera_config;
 
-		//vin_attr = vp_vflow_contex->sensor_config->vin_attr;
-		//pym_config = vp_vflow_contex->sensor_config->pym_config;
-		//isp_attr = vp_vflow_contex->sensor_config->isp_attr;
-		//vp_vflow_contex->mclk_is_not_configed = csi_config.mclk_is_not_configed;
-	//
-		//// 1. setting cam args
-		//camera_config->width = sensor_width;
-		//camera_config->height = sensor_height;
-		//if (sensor_fps > 0)
-		//	camera_config->fps = sensor_fps;
+		vp_vflow_contex->mclk_is_not_configed = csi_config.mclk_is_not_configed;
+
+		//1. setting cam args
+		if (sensor_width > 0 && sensor_width <= camera_config->width)
+			camera_config->width = sensor_width;
+		else if (sensor_width == -1)
+			SC_LOGW("sensor_width not config!!!, use default value %d\n", camera_config->width);
+		else {
+			SC_LOGE("sensor_width not support!!!");
+			return -1;
+		}
+
+		if (sensor_height > 0 && sensor_height <= camera_config->height)
+			camera_config->height = sensor_height;
+		else if (sensor_height == -1)
+			SC_LOGW("sensor_height not config!!!, use default value %d\n", camera_config->height);
+		else {
+			SC_LOGE("sensor_height not support!!!");
+			return -1;
+		}
+
+		if (sensor_fps > 0 && sensor_fps <= camera_config->fps)
+			camera_config->fps = sensor_fps;
+		else if (sensor_fps == -1)
+			SC_LOGW("sensor_fps not config!!!, use default value %d\n", camera_config->fps);
+		else {
+			SC_LOGE("sensor_fps not support!!!");
+			return -1;
+		}
+
+		// 2. setting vin args
+		vin_attr->vin_ichn_attr.height = camera_config->height;
+		vin_attr->vin_ichn_attr.width = camera_config->width;
+		vin_attr->vin_ochn_attr[VIN_MAIN_FRAME].roi_attr.roi_width = camera_config->width;
+		vin_attr->vin_ochn_attr[VIN_MAIN_FRAME].roi_attr.roi_height = camera_config->height;
 //
-		//// 2. setting vin args
-		//vin_attr->vin_ichn_attr.height = sensor_height;
-		//vin_attr->vin_ichn_attr.width = sensor_width;
-		//vin_attr->vin_ochn_attr[VIN_MAIN_FRAME].roi_attr.roi_width = sensor_width;
-		//vin_attr->vin_ochn_attr[VIN_MAIN_FRAME].roi_attr.roi_height = sensor_height;
+		// 3. setting isp args
+		isp_attr->size.width = camera_config->width;
+		isp_attr->size.height = camera_config->height;
+
 //
-		//// 3. setting isp args
-		//isp_attr->size.width = sensor_width;
-		//isp_attr->size.height = sensor_height;
+		// 4. Setting Vse channel
+		input_width = camera_config->width;
+		input_height = camera_config->height;
+		SC_LOGD("VSE: input_width: %d input_height: %d", input_width, input_height);
 //
-		//// 4. Setting Vse channel
-		//input_width = sensor_width;
-		//input_height = sensor_height;
-		//SC_LOGD("VSE: input_width: %d input_height: %d",
-		//	input_width, input_height);
-//
-		//pym_config->chn_ctrl.src_in_width = input_width;
-	    //pym_config->chn_ctrl.src_in_height = input_height;
-	    //pym_config->chn_ctrl.src_in_stride_y = input_width;
-	    //pym_config->chn_ctrl.src_in_stride_uv = input_width;
-//
-//
-		//pym_config->chn_ctrl.ds_roi_info[0].region_width = 1920;
-		//pym_config->chn_ctrl.ds_roi_info[0].region_height = 1080;
-		//pym_config->chn_ctrl.ds_roi_info[0].wstride_uv = 1920;
-		//pym_config->chn_ctrl.ds_roi_info[0].wstride_y = 1920;
-		//pym_config->chn_ctrl.ds_roi_info[0].out_width = 1920;
-		//pym_config->chn_ctrl.ds_roi_info[0].out_height = 1080;
+		pym_config->chn_ctrl.src_in_width = camera_config->width;
+	    pym_config->chn_ctrl.src_in_height = camera_config->height;
+	    pym_config->chn_ctrl.src_in_stride_y = camera_config->width;
+	    pym_config->chn_ctrl.src_in_stride_uv = camera_config->width;
+
+
+		//pym_config->chn_ctrl.ds_roi_info[0].region_width = camera_config->width;
+		//pym_config->chn_ctrl.ds_roi_info[0].region_height = camera_config->height;
+		//pym_config->chn_ctrl.ds_roi_info[0].wstride_uv = width[0];
+		//pym_config->chn_ctrl.ds_roi_info[0].wstride_y = width[0];
+		//pym_config->chn_ctrl.ds_roi_info[0].out_width = width[0];
+		//pym_config->chn_ctrl.ds_roi_info[0].out_height = height[0];
 		//pym_config->chn_ctrl.ds_roi_info[0].vstride = pym_config->chn_ctrl.ds_roi_info[0].out_height;
+
+
+
+		for (i = 0; i < chn_num; i++) {
+			if (camera_config->width < width[i] || camera_config->height < height[i]) {
+				SC_LOGE("pym not support enlarge width and  height!!!");
+				return -1;
+			} else if (width[i] == 0 && height[i] == 0 && i == chn_num -1) {
+				SC_LOGW("pym out chn_num:%d width & height set same as input size!!!", i);
+				width[i] = camera_config->width;
+				height[i] = camera_config->height;
+			} else if (width[i] < (camera_config->width / 2) || height[i] < (camera_config->height / 2 )) {
+				SC_LOGE("pym not support width and height shorter than half of camera_width and  camera_height!!!");
+				//SC_LOGE("width[%d] = %d, camera_config->width / 2 = %d , height[%d] = %d, camera_config->height / 2 = %d", 
+				//	i, width[i], camera_config->width / 2, i, height[i], camera_config->height / 2);
+				return -1;
+			}
+//
+			pym_config->chn_ctrl.ds_roi_info[i].region_width = camera_config->width;
+			pym_config->chn_ctrl.ds_roi_info[i].region_height = camera_config->height;
+			pym_config->chn_ctrl.ds_roi_info[i].wstride_uv = width[i];
+			pym_config->chn_ctrl.ds_roi_info[i].wstride_y = width[i];
+			pym_config->chn_ctrl.ds_roi_info[i].out_width = width[i];
+			pym_config->chn_ctrl.ds_roi_info[i].out_height = height[i];
+			pym_config->chn_ctrl.ds_roi_info[i].vstride = pym_config->chn_ctrl.ds_roi_info[i].out_height;
+		}
 
 		//vse_config->vse_ichn_attr.width = input_width;
 		//vse_config->vse_ichn_attr.height = input_height;
