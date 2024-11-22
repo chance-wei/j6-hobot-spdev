@@ -149,17 +149,17 @@ int32_t vp_isp_stop(vp_vflow_contex_t *vp_vflow_contex)
 int32_t vp_isp_get_frame(vp_vflow_contex_t *vp_vflow_contex, ImageFrame *frame)
 {
 	int32_t ret = 0;
-	uint32_t chn_id = 0;
+
 	hbn_vnode_handle_t isp_node_handle = vp_vflow_contex->isp_node_handle;
 	hbn_vnode_image_group_t *out_image_group = &frame->vnode_image_group;
 
-	ret = hbn_vnode_getframe_group(isp_node_handle, chn_id, VP_GET_FRAME_TIMEOUT, out_image_group);
+	ret = hbn_vnode_getframe_group(isp_node_handle, 0, VP_GET_FRAME_TIMEOUT, out_image_group);
 
 	if (ret != 0) {
-		SC_LOGE("hbn_vnode_getframe %d ISP failed\n", chn_id);
+		SC_LOGE("hbn_vnode_getframe from ISP failed\n");
 	}
 
-	fill_image_frame_from_vnode_image_group(frame);
+	fill_image_frame_from_vnode_image_group(frame, 0);
 
 	return ret;
 }
@@ -167,11 +167,11 @@ int32_t vp_isp_get_frame(vp_vflow_contex_t *vp_vflow_contex, ImageFrame *frame)
 int32_t vp_isp_release_frame(vp_vflow_contex_t *vp_vflow_contex, ImageFrame *frame)
 {
 	int32_t ret = 0;
-	uint32_t chn_id = 0;
+
 	hbn_vnode_handle_t isp_node_handle = vp_vflow_contex->isp_node_handle;
 	hbn_vnode_image_group_t *out_image_group = &frame->vnode_image_group;
 
-	ret = hbn_vnode_releaseframe_group(isp_node_handle, chn_id, out_image_group);
+	ret = hbn_vnode_releaseframe_group(isp_node_handle, 0, out_image_group);
 
 	return ret;
 }

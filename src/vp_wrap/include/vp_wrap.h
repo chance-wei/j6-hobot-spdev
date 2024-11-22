@@ -37,7 +37,7 @@ int32_t vp_dump_2plane_yuv_to_file(char *filename, uint8_t *src_buffer, uint8_t 
 void vp_vin_print_hbn_vnode_image_t(const hbn_vnode_image_t *frame);
 void vp_codec_print_media_codec_output_buffer_info(ImageFrame *frame);
 void fill_image_frame_from_vnode_image(ImageFrame *frame);
-void fill_image_frame_from_vnode_image_group(ImageFrame *frame);
+void fill_image_frame_from_vnode_image_group(ImageFrame *frame, int32_t ochn_id);
 void fill_vnode_image_from_image_frame(ImageFrame *frame);
 
 #ifdef __cplusplus

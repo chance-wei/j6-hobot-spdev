@@ -16,6 +16,81 @@
 #include "vp_wrap.h"
 #include "vp_vse.h"
 
+static pym_cfg_t pym_common_config = {
+		.hw_id = 1,
+		.pym_mode = 3,
+		.slot_id = 0,
+		.pingpong_ring = 0,
+		.output_buf_num = 6,
+		.fb_buf_num = 2,
+		.timeout = 0,
+		.threshold_time = 0,
+		.layer_num_trans_next = 0,
+		.layer_num_share_prev = -1,
+		.out_buf_noinvalid = 1,
+		.out_buf_noncached = 0,
+		.in_buf_noclean = 1,
+		.in_buf_noncached = 0,
+		.chn_ctrl = {
+			.pixel_num_before_sol = DEF_PIX_NUM_BF_SOL,
+	    	.invalid_head_lines = 0,
+	    	.src_in_width = 1920,
+	    	.src_in_height = 1080,
+	    	.src_in_stride_y = 1920,
+	    	.src_in_stride_uv = 1920,
+	    	.suffix_hb_val = DEF_SUFFIX_HB,
+	    	.prefix_hb_val = DEF_PREFIX_HB,
+	    	.suffix_vb_val = DEF_SUFFIX_VB,
+	    	.prefix_vb_val = DEF_PREFIX_VB,
+	    	.ds_roi_en = 1,
+	    	.bl_max_layer_en = DEF_BL_MAX_EN,
+	    	.ds_roi_uv_bypass = 0,
+			.pre_int_set_y = {
+				[PRE_INT_0_SET] = 0,
+	    		[PRE_INT_1_SET] = 0,
+	    		[PRE_INT_2_SET] = 0,
+	    		[PRE_INT_3_SET] = 0,
+	    		[PRE_INT_4_SET] = 0,
+	    		[PRE_INT_5_SET] = 0,
+	    		[PRE_INT_6_SET] = 0,
+	    		[PRE_INT_7_SET] = 0,
+			},
+			.pre_int_set_uv = {
+	    		[PRE_INT_0_SET] = 0,
+	    		[PRE_INT_1_SET] = 0,
+	    		[PRE_INT_2_SET] = 0,
+	    		[PRE_INT_3_SET] = 0,
+	    		[PRE_INT_4_SET] = 0,
+	    		[PRE_INT_5_SET] = 0,
+	    		[PRE_INT_6_SET] = 0,
+	    		[PRE_INT_7_SET] = 0,
+			},
+			.ds_roi_sel = {
+				[0] = 0,
+			},
+			.ds_roi_layer = {
+				[0] = 0,
+			},
+			.ds_roi_info = {
+				[0] = {
+					.start_left = 0,
+					.start_top = 0,
+					.region_width = 1920,
+					.region_height = 1080,
+					.wstride_uv = 1920,
+					.wstride_y = 1920,
+					.out_width = 1920,
+					.out_height = 1080,
+					.vstride = 1080, //.out_height,
+				},
+			},
+		},
+	.magicNumber = MAGIC_NUMBER,
+};
+pym_cfg_t *get_vp_pym_common_config (void)
+{
+	return &pym_common_config;
+}
 int32_t vp_vse_init(vp_vflow_contex_t *vp_vflow_contex)
 {
 	int32_t ret = 0;
@@ -23,7 +98,7 @@ int32_t vp_vse_init(vp_vflow_contex_t *vp_vflow_contex)
 	hbn_vnode_handle_t vnode_magic_id;
 	hbn_buf_alloc_attr_t alloc_attr;
 	//coverity[misra_c_2012_rule_11_5_violation:SUPPRESS], ## violation reason SYSSW_V_11.5.04
-	pym_cfg = (pym_cfg_t *)vp_vflow_contex->sensor_config->pym_config;
+	pym_cfg = (pym_cfg_t *)vp_vflow_contex->pym_config;
 	ret = hbn_vnode_open(HB_PYM, pym_cfg->hw_id, AUTO_ALLOC_ID, &vnode_magic_id);
 	if (ret < 0) {
 		//coverity[misra_c_2012_rule_15_1_violation:SUPPRESS], ## violation reason SYSSW_V_15.1.01
@@ -157,17 +232,16 @@ int32_t vp_vse_get_frame(vp_vflow_contex_t *vp_vflow_contex,
 	int32_t ochn_id, ImageFrame *frame)
 {
 	int32_t ret = 0;
-	ochn_id = 0;
 	hbn_vnode_handle_t vse_node_handle = vp_vflow_contex->vse_node_handle;
 	hbn_vnode_image_group_t *out_image_group = &frame->vnode_image_group;
 
-	ret = hbn_vnode_getframe_group(vse_node_handle, ochn_id, VP_GET_FRAME_TIMEOUT, out_image_group);
+	ret = hbn_vnode_getframe_group(vse_node_handle, 0, VP_GET_FRAME_TIMEOUT, out_image_group);
 
 	if (ret != 0) {
-		SC_LOGE("hbn_vnode_getframe %d PYM failed\n", ochn_id);
+		SC_LOGE("hbn_vnode_getframe from PYM failed\n");
 	}
 
-	fill_image_frame_from_vnode_image_group(frame);
+	fill_image_frame_from_vnode_image_group(frame, ochn_id);
 
 	return ret;
 }
@@ -176,12 +250,11 @@ int32_t vp_vse_release_frame(vp_vflow_contex_t *vp_vflow_contex,
 	int32_t ochn_id, ImageFrame *frame)
 {
 	int32_t ret = 0;
-	ochn_id = 0;
 
 	hbn_vnode_handle_t vse_node_handle = vp_vflow_contex->vse_node_handle;
 	hbn_vnode_image_group_t *out_image_group = &frame->vnode_image_group;
 
-	ret = hbn_vnode_releaseframe_group(vse_node_handle, ochn_id, out_image_group);
+	ret = hbn_vnode_releaseframe_group(vse_node_handle, 0, out_image_group);
 
 	return ret;
 }

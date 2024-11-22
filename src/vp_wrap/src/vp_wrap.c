@@ -438,7 +438,7 @@ void fill_image_frame_from_vnode_image(ImageFrame *frame)
 	}
 }
 
-void fill_image_frame_from_vnode_image_group(ImageFrame *frame)
+void fill_image_frame_from_vnode_image_group(ImageFrame *frame, int32_t ochn_id)
 {
 	if (!frame) return;
 
@@ -447,16 +447,16 @@ void fill_image_frame_from_vnode_image_group(ImageFrame *frame)
 	frame->image_timestamp = frame->vnode_image_group.info.timestamps;
 
 	// 填充 width, height, stride, vstride 等字段
-	frame->width = frame->vnode_image_group.buf_group.graph_group[0].width;
-	frame->height = frame->vnode_image_group.buf_group.graph_group[0].height;
-	frame->stride = frame->vnode_image_group.buf_group.graph_group[0].stride;
-	frame->vstride = frame->vnode_image_group.buf_group.graph_group[0].vstride;
-	frame->plane_count = frame->vnode_image_group.buf_group.graph_group[0].plane_cnt;
+	frame->width = frame->vnode_image_group.buf_group.graph_group[ochn_id].width;
+	frame->height = frame->vnode_image_group.buf_group.graph_group[ochn_id].height;
+	frame->stride = frame->vnode_image_group.buf_group.graph_group[ochn_id].stride;
+	frame->vstride = frame->vnode_image_group.buf_group.graph_group[ochn_id].vstride;
+	frame->plane_count = frame->vnode_image_group.buf_group.graph_group[ochn_id].plane_cnt;
 
-	for (int i = 0; i < frame->vnode_image_group.buf_group.graph_group[0].plane_cnt; ++i) {
-		frame->pdata[i] = frame->vnode_image_group.buf_group.graph_group[0].phys_addr[i];
-		frame->data[i] = frame->vnode_image_group.buf_group.graph_group[0].virt_addr[i];
-		frame->data_size[i] = frame->vnode_image_group.buf_group.graph_group[0].size[i];
+	for (int i = 0; i < frame->vnode_image_group.buf_group.graph_group[ochn_id].plane_cnt; ++i) {
+		frame->pdata[i] = frame->vnode_image_group.buf_group.graph_group[ochn_id].phys_addr[i];
+		frame->data[i] = frame->vnode_image_group.buf_group.graph_group[ochn_id].virt_addr[i];
+		frame->data_size[i] = frame->vnode_image_group.buf_group.graph_group[ochn_id].size[i];
 	}
 }
 

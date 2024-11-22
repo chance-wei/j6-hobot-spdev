@@ -131,6 +131,7 @@ typedef struct vp_vflow_contex_s {
 	int32_t mipi_csi_rx_index;
 	int32_t mclk_is_not_configed;
 	vp_sensor_config_t *sensor_config;
+	pym_cfg_t *pym_config;
 	hbn_vnode_handle_t vin_node_handle;
 	hbn_vnode_handle_t isp_node_handle;
 	int32_t vse_chn_num;

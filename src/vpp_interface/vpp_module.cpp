@@ -68,7 +68,7 @@ namespace spdev
 	}
 
 	int32_t VPPModule::BindTo(VPPModule *prev_module, int32_t chn)
-	{
+    {
 		m_run = 1;
 		m_prev_module = prev_module;
 		LOGD_print("BindTo_CHN:%d\n",chn);

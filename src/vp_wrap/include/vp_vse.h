@@ -59,12 +59,14 @@ extern "C" {
 #define PYM_MAX_TIMEOUT 10000u
 #define PYM_MAX_BUF_NUM 64u
 #define PYM_MAX_ADJUST_SRC_BUFFER_NUM 16u
+#define PYM_MAX_CHN_NUM 6u
+#define PYM_CHN_NUM_MASK ((1u << PYM_MAX_CHN_NUM) - 1)
 
 int32_t vp_vse_init(vp_vflow_contex_t *vp_vflow_contex);
 int32_t vp_vse_start(vp_vflow_contex_t *vp_vflow_contex);
 int32_t vp_vse_stop(vp_vflow_contex_t *vp_vflow_contex);
 int32_t vp_vse_deinit(vp_vflow_contex_t *vp_vflow_contex);
-
+pym_cfg_t *get_vp_pym_common_config (void);
 int32_t vp_vse_send_frame(vp_vflow_contex_t *vp_vflow_contex,
 	hbn_vnode_image_t *image_frame);
 int32_t vp_vse_get_frame(vp_vflow_contex_t *vp_vflow_contex,
